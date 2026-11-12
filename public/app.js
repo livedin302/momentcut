@@ -208,6 +208,12 @@ function fullReset(){
 
 function updateCaptureUI(){
   const filled=state.photos.filter(Boolean).length;
+  // Keep every retake thumbnail in the exact same aspect ratio as its capture layout.
+  // The ratio is based on the selected preset's photo slot, not the 4x6 print paper.
+  const shotRatio=currentPhotoRatio();
+  ui.shotGrid.style.setProperty('--shot-ratio', String(shotRatio));
+  ui.shotGrid.classList.toggle('shots-landscape', shotRatio>=1);
+  ui.shotGrid.classList.toggle('shots-portrait', shotRatio<1);
   $('#captureCounter').textContent=`${filled} / ${state.count} SHOTS`;
   $('#shotBadge').textContent=`${filled} / ${state.count}`;
   ui.shotGrid.innerHTML=state.photos.map((photo,i)=>`<button type="button" class="shot-cell ${photo?'filled':''}" data-retake="${i}" aria-label="${i+1}번 컷 ${photo?'다시 찍기':'비어 있음'}">${photo?`<img src="${photo}" alt="${i+1}번 사진">`:'+'}<span class="shot-index">${String(i+1).padStart(2,'0')}</span></button>`).join('');
@@ -418,7 +424,8 @@ function drawPhotoSlot(ctx,img,x,y,w,h,filter,index,radius=18){
   if(img){ctx.filter=filter;drawCover(ctx,img,x,y,w,h);ctx.filter='none'}
   else{const grd=ctx.createLinearGradient(x,y,x+w,y+h);grd.addColorStop(0,'#f5e0ea');grd.addColorStop(1,'#ded4f3');ctx.fillStyle=grd;ctx.fillRect(x,y,w,h);ctx.fillStyle='#a795af';ctx.font=`900 ${Math.round(Math.min(w,h)*.18)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✧',x+w/2,y+h/2-20);ctx.font=`bold ${Math.round(Math.min(w,h)*.11)}px Arial`;ctx.fillText(`PHOTO ${String(index+1).padStart(2,'0')}`,x+w/2,y+h/2+22)}
   ctx.restore();
-  ctx.save();ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';roundRectPath(ctx,x,y,w,h,radius);ctx.stroke();ctx.restore();
+  // Do not draw a stroke around photo slots: it made a thin white border
+  // appear in the exported PNG, especially on dark frame colors.
 }
 async function renderPreview(){
   if(state.customFrame){const req=++state.renderNonce;return renderAdminCustomFrame(req)}
