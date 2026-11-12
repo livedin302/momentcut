@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/api/share",
+      "destination": "/api/handler?route=share"
+    },
+    {
+      "source": "/api/qr",
+      "destination": "/api/handler?route=qr"
+    },
+    {
+      "source": "/s/:id",
+      "destination": "/api/handler?route=page&id=:id"
+    },
+    {
+      "source": "/shared/:id.png",
+      "destination": "/api/handler?route=image&id=:id"
+    }
+  ]
+}

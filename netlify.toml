@@ -1,0 +1,5 @@
+# Netlify can host the photo editor as a static site.
+# QR link storage requires a separate backend: use Render or Vercel + Blob.
+[build]
+  publish = "public"
+  command = "echo 'MomentCut static site ready'"

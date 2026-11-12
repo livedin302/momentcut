@@ -1,0 +1,12 @@
+{
+  "name": "momentcut-photo-booth",
+  "version": "1.1.0",
+  "private": true,
+  "description": "인생네컷 스타일 웹캠 포토부스 — 배포 설정 수정판",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check api/handler.js && node --check public/app.js"
+  },
+  "dependencies": {"@vercel/blob": "^2.0.0"},
+  "engines": {"node": ">=20"}
+}

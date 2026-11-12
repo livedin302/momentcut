@@ -1,0 +1,5 @@
+shared/*.png
+.DS_Store
+node_modules
+.vercel
+.env*
