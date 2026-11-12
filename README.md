@@ -1,63 +1,75 @@
-# 모먼트컷 — 배포 오류 수정판 📸
+# 📸 모먼트컷 — GitHub + Vercel 배포용
 
-이 패키지는 **기존 ZIP 내부에 `momentcut/` 폴더가 한 번 더 들어 있고, HTML 파일이 `/public/index.html`에 있어 정적 호스팅 서비스에서 404가 날 수 있던 문제**를 해결하기 위한 배포 설정이 포함되어 있습니다.
+인생네컷 스타일 사진 촬영 웹사이트. 카메라 촬영(수동·3초·5초), 4컷·6컷, 재촬영, 프레임/필터/스티커/문구/로고 편집, PNG 다운로드, 사진 공유 링크와 QR코드를 지원합니다.
 
-압축을 풀면 `package.json`, `server.js`, `vercel.json`, `render.yaml`, `netlify.toml`, `api/`, `public/`이 **프로젝트 최상위**에 바로 있어야 합니다. GitHub 저장소에 업로드할 때 `momentcut/` 같은 중간 폴더를 추가하지 마세요.
+## 바로 배포하기
 
-## 가장 추천: Render (Node.js Web Service)
+**[GITHUB-VERCEL-배포가이드.md](./GITHUB-VERCEL-배포가이드.md)**를 열어 차례대로 진행하세요.
 
-사진 찍기, 꾸미기, PNG 다운로드, QR 링크 공유를 처음부터 한 서버에서 실행할 수 있습니다.
+핵심 설정:
 
-1. 압축을 푼 **프로젝트 내용물**을 GitHub 저장소 최상위에 업로드합니다.
-2. Render → **New** → **Web Service** → GitHub 저장소를 연결합니다. `Static Site`가 아닙니다.
-3. 아래 설정을 사용합니다.
-   - Language / Runtime: **Node**
-   - Root Directory: **빈칸** (`server.js`가 하위 폴더에 있다면 그 폴더명)
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-4. 배포 완료 후 `https://<사이트명>.onrender.com/` 에 접속합니다.
-5. `https://<사이트명>.onrender.com/health` 에서 `{"ok":true,...}` 가 나오면 서버가 정상 실행 중입니다.
+| 항목 | 값 |
+|---|---|
+| GitHub 저장소 최상위 | `package.json`, `vercel.json`, `public/`, `api/` |
+| Vercel Framework Preset | **Other** |
+| Root Directory | **`./` (기본값)** |
+| Build Command | **비움** (별도의 프런트엔드 빌드 불필요) |
+| Output Directory | **`public`** (`vercel.json`에 지정됨) |
+| Install Command | **기본값** (`npm install`) |
 
-주의: Render의 **영구 디스크 없는 서비스**는 재시작·재배포 시 공유 이미지가 사라질 수 있습니다. 링크가 7일간 반드시 유지되어야 한다면 영구 스토리지 디스크를 연결하고 환경변수 `SHARED_DIR`을 그 디스크 경로로 지정하거나 별도 오브젝트 스토리지를 연결하세요. 이 샘플은 로컬 폴더에 저장하며 7일이 지난 사진은 서버의 정리 작업에서 삭제합니다.
+사이트 배포 자체에는 Blob 스토리지가 필요하지 않습니다. 다만 **QR 공유 링크 생성**까지 사용하려면 Vercel 프로젝트에 **Private Vercel Blob** 스토리지를 연결해야 합니다. 연결하면 `BLOB_READ_WRITE_TOKEN`이 프로젝트에 설정됩니다. 연결 후 재배포하세요.
 
-## Vercel 배포
+확인 주소:
 
-1. 프로젝트 내용물을 GitHub 저장소 최상위에 업로드합니다.
-2. Vercel → Add New → Project → 저장소 연결.
-3. **Root Directory**: `package.json`이 있는 위치(일반적으로 `./`). **Framework Preset**: `Other`. **Build Command**: 비워 두거나 기본값. **Output Directory**: 비워 둡니다(수동으로 `dist` 등을 입력하지 마세요).
-4. `vercel.json`이 정적 페이지 외에 QR/API 요청을 Vercel Function으로 연결합니다. HTTPS 제공.
-5. **사진 촬영·꾸미기·PNG 다운로드**는 추가 스토리지 없이 작동합니다.
-6. **서버에 사진을 저장하는 QR 공유**까지 사용하려면 Vercel 프로젝트의 **Storage → Blob**에서 **Private** Blob store를 생성하고 프로젝트에 연결하세요. `BLOB_READ_WRITE_TOKEN` 환경변수가 자동 설정되는지 확인하고 다시 배포하세요. Vercel 서버리스 환경은 로컬 파일에 공유 사진을 계속 보관할 수 없습니다. 서버 업로드 제한상 Vercel에서 공유용 PNG는 약 3MB 이하여야 합니다.
+- `/` — 홈페이지
+- `/api/health` — `{"ok":true,"service":"momentcut","mode":"vercel"}`
+- `/api/qr?text=hello` — QR SVG 이미지
 
-**Vercel 주의:** 공유 링크는 생성 시점부터 **7일 동안만 열리도록** 처리되어 있습니다. Blob 파일은 만료된 링크를 누르면 삭제하지만, 링크를 재방문하지 않으면 스토리지에서 자동 물리 삭제되는 것은 아닙니다. 운영 서비스에는 주기적 정리 작업을 추가해야 합니다.
+## 배포 시 수정한 점
 
-## Netlify/Cloudflare Pages/GitHub Pages (정적 호스팅)
+- 정적 웹 페이지를 `public/`에 모으고 `vercel.json`에서 배포 출력 위치를 명시했습니다.
+- 복잡한 `rewrites` 대신 `/api/*.mjs` Vercel Functions를 직접 사용합니다.
+- 사진 공유 주소를 `/api/view?id=...`와 `/api/image?id=...`로 통일했습니다.
+- Vercel Functions는 최신 **Web `Request`/`Response` 방식**으로 구현했습니다.
+- Private Vercel Blob API를 사용하기 위해 `@vercel/blob` 버전을 `^2.3.0` 이상으로 지정했습니다.
+- Blob 저장소가 없어도 **사진 촬영/꾸미기/PNG 저장**이 동작하며, 링크 공유 시 연결 안내를 표시합니다.
+- Vercel Functions 본문 크기 제한을 고려해 **3MB 이하 PNG만 링크로 공유**합니다. PNG 파일 다운로드는 이 제한과 무관합니다.
 
-정적 호스팅은 **사진 촬영·꾸미기·PNG 다운로드**는 지원하지만 Node 서버가 필요한 **QR 공유 링크 저장은 그대로 사용할 수 없습니다**.
+## 로컬 테스트
 
-- **Netlify:** 포함된 `netlify.toml` 덕분에 Publish Directory가 `public`으로 설정됩니다. 수동 설정 시에도 `public`을 지정하세요.
-- **Cloudflare Pages:** Framework `None`; Build command 비움; Build output directory `public`.
-- **GitHub Pages:** `public` 폴더의 파일을 Pages 서비스 루트에 올리는 별도 과정이 필요합니다. 그리고 사이트가 하위 경로에 있으면 CSS/JS 경로(`/style.css`)도 수정해야 합니다.
-- **전체 기능**이 필요하면 **Render Web Service** 또는 **Vercel + Blob**을 사용하세요.
-
-## 로컬 실행
-
-Node.js 20 이상 사용:
+Node.js 20 이상 필요:
 
 ```bash
 npm install
+npm run check
 npm start
 ```
 
-브라우저에서 http://localhost:3000 열기. `npm run check`로 코드 구문 검사.
+브라우저에서 `http://localhost:3000`에 접속하세요. 로컬에서는 링크 공유 사진이 `shared/` 폴더에 저장됩니다. 이 폴더와 `.env` 파일은 `.gitignore`에 의해 GitHub 업로드에서 제외됩니다.
 
-## 배포 후 문제 해결
+## 개인정보 및 보관 정책 안내
 
-- **404 NOT_FOUND**: ZIP 폴더 구조, Vercel Root Directory/Output Directory, 또는 Render에서 **Static Site**를 선택했는지 확인.
-- **사이트는 보이지만 카메라가 작동하지 않음**: HTTPS 사용 및 브라우저 카메라 접근 허용.
-- **QR 공유가 안 됨**: Render에서는 서버 로그 확인. Vercel에서는 Blob store 연결 여부 확인. Netlify 등 정적 호스팅은 QR 공유 서버가 없음.
-- **링크가 바로 404**: 실서비스 URL 전체를 확인하고 `/health`(Render) 또는 `/`(Vercel) 접속 결과를 확인.
+- 일반 촬영·꾸미기·PNG 저장은 사용자의 브라우저에서 처리됩니다.
+- **공유 링크 생성**을 누르면 사진이 Vercel Blob 저장소에 업로드됩니다. 링크가 알려지면 누구나 해당 사진을 열 수 있습니다.
+- **공유 링크는 7일 후 만료**됩니다. 만료 후 누군가 열어보면 관련 Blob을 삭제하도록 설계되어 있습니다. **아무도 만료된 링크에 접속하지 않는다면 Blob 파일이 자동으로 물리 삭제되지는 않습니다.** 운영자는 Vercel Storage에서 오래된 Blob을 별도로 정리해야 합니다.
+- Vercel Blob은 사용량에 따른 한도 및 비용이 발생할 수 있습니다. 공개 서비스 운영 시 요금과 사용량을 주기적으로 확인하세요.
+- 카메라는 **HTTPS** 또는 **localhost**에서만 접근할 수 있으며, 사용자에게 권한 허용을 받아야 합니다.
 
-## 개인정보/공유 안내
+## 포함 파일
 
-편집 중 사진은 브라우저에서 처리되며 PNG 다운로드는 서버 저장을 요구하지 않습니다. `공유 링크 · QR 만들기`를 누르면 사진이 서버/스토리지에 저장되고, **링크를 아는 사람은 사진을 볼 수 있습니다**. 따라서 개인 정보가 담긴 사진을 공유할 때는 주의하세요.
+```text
+public/
+  index.html       정적 홈페이지·4개 화면
+  style.css        디자인
+  app.js           카메라 촬영·편집·다운로드·공유 UI
+api/
+  health.mjs       상태 확인
+  qr.mjs           QR 코드 생성
+  share.mjs        사진 업로드
+  view.mjs         공유 페이지
+  image.mjs        공유 이미지
+vercel-api.mjs      Vercel 서버리스 구현
+server.js           로컬 Node 서버
+vercel.json         Vercel 배포 설정
+package.json        런타임·의존성
+```

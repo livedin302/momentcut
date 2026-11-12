@@ -80,8 +80,8 @@ async function getShared(id){
 }
 
 function sharedPage(id){
-  const image='/shared/'+id+'.png';
-  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>모먼트컷 공유 사진</title><style>*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#faf7f3;color:#302934;margin:0;text-align:center;padding:30px 18px}.card{margin:auto;max-width:520px;border-radius:20px;background:white;padding:24px;box-shadow:0 10px 35px #32213c13}h1{font-size:24px;margin:0 0 7px;letter-spacing:-1px}.sub{color:#918896;font-size:13px;margin:0 0 24px}.photo{max-width:100%;max-height:72vh;display:block;margin:auto;box-shadow:0 10px 26px #463c462b}a.btn{display:block;max-width:280px;margin:24px auto 10px;border-radius:12px;padding:15px;background:#302934;color:white;text-decoration:none;font-weight:bold}a.home{color:#9576b9;font-size:12px}small{display:block;color:#9c929b;line-height:1.8;margin:20px auto}</style></head><body><main class="card"><h1>momentcut. ♡</h1><p class="sub">우리의 소중한 순간을 공유해요</p><img class="photo" src="${image}" alt="공유된 네컷 사진"><a class="btn" href="${image}" download="momentcut.png">↓ 사진 다운로드</a><a class="home" href="/">내 네컷도 만들러 가기 ↗</a><small>이 사진은 링크를 아는 사람만 열 수 있으며<br>업로드 후 7일이 지나면 자동 삭제됩니다.</small></main></body></html>`;
+  const image='/api/image?id='+encodeURIComponent(id);
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>모먼트컷 공유 사진</title><style>*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo',sans-serif;background:#faf7f3;color:#302934;margin:0;text-align:center;padding:30px 18px}.card{margin:auto;max-width:520px;border-radius:20px;background:white;padding:24px;box-shadow:0 10px 35px #32213c13}h1{font-size:24px;margin:0 0 7px;letter-spacing:-1px}.sub{color:#918896;font-size:13px;margin:0 0 24px}.photo{max-width:100%;max-height:72vh;display:block;margin:auto;box-shadow:0 10px 26px #463c462b}a.btn{display:block;max-width:280px;margin:24px auto 10px;border-radius:12px;padding:15px;background:#302934;color:white;text-decoration:none;font-weight:bold}a.home{color:#9576b9;font-size:12px}small{display:block;color:#9c929b;line-height:1.8;margin:20px auto}</style></head><body><main class="card"><h1>momentcut. ♡</h1><p class="sub">우리의 소중한 순간을 공유해요</p><img class="photo" src="${image}" alt="공유된 네컷 사진"><a class="btn" href="${image}" download="momentcut.png">↓ 사진 다운로드</a><a class="home" href="/">내 네컷도 만들러 가기 ↗</a><small>링크를 아는 사람은 누구나 열 수 있어요.<br>공유 링크는 업로드 7일 후 만료됩니다.</small></main></body></html>`;
 }
 async function cleanup(){
   const items=await fs.readdir(SHARED,{withFileTypes:true}).catch(()=>[]);
@@ -107,7 +107,7 @@ async function handle(req,res){
       if(png.length>SHARE_UPLOAD_LIMIT||png.length<50||png.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')return json(res,400,{error:'올바른 PNG 이미지가 아닙니다.'});
       const id=crypto.randomBytes(15).toString('base64url');
       await saveShared(id,png);
-      return json(res,201,{url:'/s/'+id,expiresInDays:7});
+      return json(res,201,{url:'/api/view?id='+id,expiresInDays:7});
     }catch(err){console.error('공유 실패:',err);return json(res,err.status||500,{error:err.status?err.message:'사진 공유 중 서버 오류가 발생했어요.'})}
   }
   if(req.method!=='GET'&&req.method!=='HEAD')return send(res,405,'Method not allowed');
@@ -117,13 +117,14 @@ async function handle(req,res){
     try{return send(res,200,qrSVG(value),'image/svg+xml; charset=utf-8',{'Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'"})}
     catch{return send(res,400,'QR encoding failed')}
   }
-  if(pathname.startsWith('/s/')){
-    const id=pathname.slice(3),file=await getShared(id);if(!file)return send(res,404,'이 사진은 없거나 만료되었어요.');
+  if(pathname==='/api/view'||pathname.startsWith('/s/')){
+    const id=pathname==='/api/view'?(url.searchParams.get('id')||''):pathname.slice(3);
+    const file=await getShared(id);if(!file)return send(res,404,'이 사진은 없거나 만료되었어요.');
     return send(res,200,sharedPage(id),'text/html; charset=utf-8',{'Cache-Control':'no-store','X-Robots-Tag':'noindex'});
   }
-  if(pathname.startsWith('/shared/')){
-    const id=pathname.slice('/shared/'.length).replace(/\.png$/,'');
-    if(pathname!==`/shared/${id}.png`)return send(res,404,'Not found');
+  if(pathname==='/api/image'||pathname.startsWith('/shared/')){
+    const id=pathname==='/api/image'?(url.searchParams.get('id')||''):pathname.slice('/shared/'.length).replace(/\.png$/,'');
+    if(pathname!=='/api/image'&&pathname!==`/shared/${id}.png`)return send(res,404,'Not found');
     const file=await getShared(id);if(!file)return send(res,404,'Not found');
     if(file.type==='blob'){
       try{
@@ -151,4 +152,4 @@ async function start(){
   return http.createServer((req,res)=>handle(req,res).catch(err=>{console.error(err);if(!res.headersSent)send(res,500,'Server error')})).listen(PORT,HOST,()=>console.log(`MomentCut running at http://localhost:${PORT}`));
 }
 if(require.main===module)start().catch(err=>{console.error(err);process.exit(1)});
-module.exports={handle,start};
+module.exports={handle,start,qrSVG,sharedPage,validToken,EXPIRES_MS};

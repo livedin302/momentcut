@@ -1,5 +1,7 @@
-shared/*.png
+node_modules/
+.vercel/
+.env
+.env.*
+shared/
+.test-shared/
 .DS_Store
-node_modules
-.vercel
-.env*
