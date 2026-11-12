@@ -1,8 +1,8 @@
 {
   "name": "momentcut-photo-booth",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "private": true,
-  "description": "MomentCut v2 - setup-first photo booth + authenticated frame administration for Vercel",
+  "description": "MomentCut v4 - double 2x6 photo strips, landscape slots, and mobile frame accordion",
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check vercel-api.mjs && node --check admin-api.mjs && node --check frame-store.mjs && node --check public/app.js && node --check public/admin.js && node --test test/*.mjs",

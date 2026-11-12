@@ -15,15 +15,17 @@ const STICKERS = ['💗','⭐','🎀','🍒','🐰','🌷','✨','🩷','🫶','
 
 const LAYOUT_PRESETS = [
   {
-    id:'basic4-double', name:'basic 4-cut', note:'네컷 2장 · 4x6 세로', count:4, badge:'4 x 6 / 2 strips', orientation:'portrait', previewClass:'dual-strip',
-    w:1200, h:1800, footerTop:.79,
+    id:'basic4-double', name:'basic 4-cut', note:'가로 사진 4컷 × 2장 · 4x6 세로 용지', count:4, badge:'4 x 6 / 2 strips', orientation:'portrait', photoOrientation:'landscape', previewClass:'dual-strip',
+    w:1200, h:1800, footerTop:.85,
+    // Each side is one 2x6-inch strip. Four landscape photo windows and a footer belong to EACH strip.
+    // The 4x6 sheet is 1200x1800 at 300 DPI, with two independently framed 600x1800 strips.
     slots:[
-      {x:.075,y:.085,w:.37,h:.145,photo:0},{x:.075,y:.247,w:.37,h:.145,photo:1},{x:.075,y:.409,w:.37,h:.145,photo:2},{x:.075,y:.571,w:.37,h:.145,photo:3},
-      {x:.555,y:.085,w:.37,h:.145,photo:0},{x:.555,y:.247,w:.37,h:.145,photo:1},{x:.555,y:.409,w:.37,h:.145,photo:2},{x:.555,y:.571,w:.37,h:.145,photo:3}
+      {x:.0375,y:.035,w:.425,h:.189,photo:0},{x:.0375,y:.242,w:.425,h:.189,photo:1},{x:.0375,y:.449,w:.425,h:.189,photo:2},{x:.0375,y:.656,w:.425,h:.189,photo:3},
+      {x:.5375,y:.035,w:.425,h:.189,photo:0},{x:.5375,y:.242,w:.425,h:.189,photo:1},{x:.5375,y:.449,w:.425,h:.189,photo:2},{x:.5375,y:.656,w:.425,h:.189,photo:3}
     ]
   },
   {
-    id:'basic6-grid', name:'basic 6-cut', note:'6컷 · 4x6 세로', count:6, badge:'4 x 6 / 6 cuts', orientation:'portrait', previewClass:'grid6',
+    id:'basic6-grid', name:'basic 6-cut', note:'6컷 · 4x6 세로', count:6, badge:'4 x 6 / 6 cuts', orientation:'portrait', photoOrientation:'landscape', previewClass:'grid6',
     w:1200, h:1800, footerTop:.78,
     slots:[
       {x:.075,y:.095,w:.39,h:.18,photo:0},{x:.535,y:.095,w:.39,h:.18,photo:1},
@@ -40,7 +42,7 @@ const LAYOUT_PRESETS = [
     ]
   },
   {
-    id:'layer4', name:'layer 4-cut', note:'레이어 4컷 · 4x6 세로', count:4, badge:'4 x 6 / layer', orientation:'portrait', previewClass:'layer4',
+    id:'layer4', name:'layer 4-cut', note:'레이어 4컷 · 4x6 세로', count:4, badge:'4 x 6 / layer', orientation:'portrait', photoOrientation:'portrait', previewClass:'layer4',
     w:1200, h:1800, footerTop:.73,
     slots:[
       {x:.085,y:.095,w:.37,h:.25,photo:0},{x:.545,y:.095,w:.37,h:.25,photo:1},
@@ -48,7 +50,7 @@ const LAYOUT_PRESETS = [
     ]
   },
   {
-    id:'film3', name:'film 3-cut', note:'필름 3컷 · 6x4 가로', count:3, badge:'6 x 4 / film', orientation:'landscape', previewClass:'film3',
+    id:'film3', name:'film 3-cut', note:'필름 3컷 · 6x4 가로', count:3, badge:'6 x 4 / film', orientation:'landscape', photoOrientation:'portrait', previewClass:'film3',
     w:1800, h:1200, footerTop:.74,
     slots:[
       {x:.055,y:.16,w:.26,h:.46,photo:0},{x:.37,y:.16,w:.26,h:.46,photo:1},{x:.685,y:.16,w:.26,h:.46,photo:2}
@@ -77,7 +79,7 @@ const state = {
   layoutPreset:DEFAULTS.layoutPreset, count:4, timer:DEFAULTS.timer, photos:[null,null,null,null], stream:null, busy:false, retakeIndex:null,
   frameStyle:DEFAULTS.frameStyle, color:'#1e1b21', theme:'clean', filter:'none', stickers:[], selectedSticker:null,
   title:DEFAULTS.title, subtitle:DEFAULTS.subtitle, font:'sans', showDate:true, showLogo:true,
-  logoUrl:null, date:new Date(), shareUrl:null, page:'home', renderNonce:0, setupDone:false, customFrame:null, availableFrames:[]
+  logoUrl:null, date:new Date(), shareUrl:null, page:'home', renderNonce:0, setupDone:false, customFrame:null, availableFrames:[], openFrameCategory:null
 };
 const photoCache = new Map();
 let toastTimer = null;
@@ -87,7 +89,15 @@ function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function escapeHTML(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
 function getCurrentPreset(){return LAYOUT_PRESETS.find(x=>x.id===state.layoutPreset)||LAYOUT_PRESETS[0]}
 function getCurrentFrameStyle(){return FRAME_STYLES.find(x=>x.id===state.frameStyle)||FRAME_STYLES[0]}
-function currentPhotoDims(){return getCurrentPreset().orientation==='portrait'?{w:900,h:1200,ratio:3/4}:{w:1200,h:900,ratio:4/3}}
+function currentPhotoRatio(){
+  const preset=getCurrentPreset(),slot=preset.slots[0];
+  return (slot.w*preset.w)/(slot.h*preset.h);
+}
+function currentPhotoDims(){
+  const ratio=currentPhotoRatio();
+  const w=ratio>=1?1200:Math.round(1200*ratio),h=ratio>=1?Math.round(1200/ratio):1200;
+  return {w,h,ratio:w/h};
+}
 function blendTextColor(hex){
   const c=hex.replace('#','');if(c.length!==6)return'#2c2630';
   const rgb=[0,2,4].map(i=>parseInt(c.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);
@@ -96,9 +106,12 @@ function blendTextColor(hex){
 function styleInk(){return getCurrentFrameStyle().textColor||blendTextColor(state.color)}
 function updateCameraStageMode(){
   const preset=getCurrentPreset();
-  ui.stage.classList.toggle('portrait',preset.orientation==='portrait');
-  ui.stage.classList.toggle('landscape',preset.orientation!=='portrait');
-  $('.camera-overlay-grid').classList.toggle('portrait',preset.orientation==='portrait' && ['basic4-double','basic6-grid'].includes(preset.id));
+  const ratio=currentPhotoRatio();
+  const portrait=ratio<1;
+  ui.stage.style.aspectRatio=String(ratio);
+  ui.stage.classList.toggle('portrait',portrait);
+  ui.stage.classList.toggle('landscape',!portrait);
+  $('.camera-overlay-grid').classList.toggle('portrait',portrait);
 }
 function go(page){
   if(!['home','setup','capture','edit','result'].includes(page))return;
@@ -184,7 +197,7 @@ function fullReset(){
   if(state.busy){toast('촬영이 끝난 후 초기화할 수 있어요.');return}
   if(!window.confirm('촬영한 모든 사진과 꾸미기 설정을 지우고 처음부터 다시 시작할까요?'))return;
   stopCamera();photoCache.clear();state.renderNonce++;
-  Object.assign(state,{timer:DEFAULTS.timer,photos:[null,null,null,null],retakeIndex:null,setupDone:false,shareUrl:null,date:new Date(),customFrame:null,stickers:[],selectedSticker:null,logoUrl:null,showDate:true,showLogo:true,filter:'none',font:'sans'});
+  Object.assign(state,{openFrameCategory:null,timer:DEFAULTS.timer,photos:[null,null,null,null],retakeIndex:null,setupDone:false,shareUrl:null,date:new Date(),customFrame:null,stickers:[],selectedSticker:null,logoUrl:null,showDate:true,showLogo:true,filter:'none',font:'sans'});
   setLayoutPreset(DEFAULTS.layoutPreset,{preservePhotos:false});
   const old=$('#finalImage').dataset.objectUrl;if(old)URL.revokeObjectURL(old);
   $('#finalImage').removeAttribute('src');delete $('#finalImage').dataset.objectUrl;
@@ -265,7 +278,7 @@ function drawCover(ctx,img,x,y,w,h){const r=Math.max(w/img.width,h/img.height),s
 function roundRectPath(ctx,x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath()}
 
 function renderSetupLayoutOptions(){
-  $('#setupLayoutOptions').innerHTML=LAYOUT_PRESETS.map(p=>`<button class="setup-layout-card ${state.layoutPreset===p.id?'selected':''}" data-setup-layout="${p.id}" aria-pressed="${state.layoutPreset===p.id}"><div class="setup-layout-top"><div><strong>${escapeHTML(p.name)}</strong><small>${escapeHTML(p.note)}</small></div><div class="layout-mini ${p.previewClass}">${Array.from({length:Math.max(p.count,p.id==='basic4-double'?8:p.count)},()=>'<b></b>').join('')}</div></div><div class="setup-layout-meta"><span>${p.count}컷</span><span>${p.badge}</span><span>${p.orientation==='portrait'?'세로 촬영':'가로 촬영'}</span></div></button>`).join('');
+  $('#setupLayoutOptions').innerHTML=LAYOUT_PRESETS.map(p=>`<button class="setup-layout-card ${state.layoutPreset===p.id?'selected':''}" data-setup-layout="${p.id}" aria-pressed="${state.layoutPreset===p.id}"><div class="setup-layout-top"><div><strong>${escapeHTML(p.name)}</strong><small>${escapeHTML(p.note)}</small></div><div class="layout-mini ${p.previewClass}">${Array.from({length:Math.max(p.count,p.id==='basic4-double'?8:p.count)},()=>'<b></b>').join('')}</div></div><div class="setup-layout-meta"><span>${p.count}컷</span><span>${p.badge}</span><span>${(p.slots[0].w*p.w)/(p.slots[0].h*p.h)<1?'세로 사진':'가로 사진'}</span></div></button>`).join('');
   $$('[data-setup-layout]').forEach(b=>b.addEventListener('click',()=>setLayoutPreset(b.dataset.setupLayout)));
 }
 function renderSelectedLayoutInfo(){
@@ -276,9 +289,20 @@ function renderBuiltinFrameOptions(){
   const groups={};
   FRAME_STYLES.forEach(style=>{(groups[style.category]??=[]).push(style)});
   const preset=getCurrentPreset();
-  $('#builtinFrameOptions').innerHTML=Object.entries(groups).map(([category,items])=>`<section class="frame-category"><h5>${escapeHTML(category)}</h5><div class="builtin-frame-grid">${items.map(style=>`<button class="builtin-frame-card ${state.frameStyle===style.id&&!state.customFrame?'selected':''}" data-built-style="${style.id}" aria-pressed="${state.frameStyle===style.id&&!state.customFrame}"><div class="builtin-frame-preview preview-${preset.id==='basic4-double'?'basic4':preset.id==='basic6-grid'?'basic6':preset.id==='wide4'?'wide4':preset.id==='layer4'?'layer4':'film3'}" style="background:${style.color}">${Array.from({length:preset.id==='basic4-double'?8:preset.count},()=>'<span class="cell"></span>').join('')}</div><strong>${escapeHTML(style.name)}</strong><small>${escapeHTML(style.brand)} · ${escapeHTML(style.note||category)}</small></button>`).join('')}</div></section>`).join('');
-  $$('[data-built-style]').forEach(b=>b.addEventListener('click',()=>applyFrameStyle(b.dataset.builtStyle)));
+  const target=$('#builtinFrameOptions');
+  // Native <details> supports mouse, touch and keyboard; only one category stays expanded.
+  target.innerHTML=Object.entries(groups).map(([category,items])=>`<details class="frame-category" data-frame-category="${escapeHTML(category)}" ${state.openFrameCategory===category?'open':''}><summary class="frame-category-toggle"><span class="frame-category-label">${escapeHTML(category)} <small>${items.length}개 프레임</small></span><span class="frame-category-chevron" aria-hidden="true">⌄</span></summary><div class="frame-category-content"><div class="builtin-frame-grid">${items.map(style=>`<button class="builtin-frame-card ${state.frameStyle===style.id&&!state.customFrame?'selected':''}" data-built-style="${style.id}" aria-pressed="${state.frameStyle===style.id&&!state.customFrame}"><div class="builtin-frame-preview preview-${preset.id==='basic4-double'?'basic4':preset.id==='basic6-grid'?'basic6':preset.id==='wide4'?'wide4':preset.id==='layer4'?'layer4':'film3'}" style="background:${style.color}">${Array.from({length:preset.id==='basic4-double'?8:preset.count},()=>'<span class="cell"></span>').join('')}</div><strong>${escapeHTML(style.name)}</strong><small>${escapeHTML(style.brand)} · ${escapeHTML(style.note||category)}</small></button>`).join('')}</div></div></details>`).join('');
+  $$('details[data-frame-category]',target).forEach(details=>details.addEventListener('toggle',()=>{
+    if(!details.isConnected)return;
+    const category=details.dataset.frameCategory;
+    if(details.open){
+      state.openFrameCategory=category;
+      $$('details[data-frame-category]',target).forEach(other=>{if(other!==details)other.open=false});
+    }else if(state.openFrameCategory===category){state.openFrameCategory=null}
+  }));
+  $$('[data-built-style]',target).forEach(b=>b.addEventListener('click',()=>applyFrameStyle(b.dataset.builtStyle)));
 }
+
 function renderThemeOptions(){
   $('#themeOptions').innerHTML=THEMES.map(([id,label])=>`<button class="theme-chip ${state.theme===id?'selected':''}" data-theme="${id}">${label}</button>`).join('');
   $$('[data-theme]').forEach(b=>b.addEventListener('click',()=>{state.theme=b.dataset.theme;state.customFrame=null;renderAdminFrameOptions();renderThemeOptions();renderPreview()}));
@@ -389,12 +413,12 @@ async function renderAdminCustomFrame(req){
   if(logo){const scale=Math.min(frame.width*.15/logo.width,frame.height*.08/logo.height);ctx.drawImage(logo,frame.width*.82,frame.height*.9,logo.width*scale,logo.height*scale)}
   for(const sticker of state.stickers){const x=sticker.x*frame.width,y=sticker.y*frame.height,size=Math.round(frame.width*.065);ctx.save();ctx.font=`${size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sticker.emoji,x,y);ctx.restore();if(sticker.id===state.selectedSticker&&state.page==='edit'){ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle='#9c60d8';ctx.lineWidth=3;ctx.strokeRect(x-size*.6,y-size*.6,size*1.2,size*1.2);ctx.restore()}}
 }
-function drawPhotoSlot(ctx,img,x,y,w,h,filter,index){
-  ctx.save();roundRectPath(ctx,x,y,w,h,18);ctx.clip();
+function drawPhotoSlot(ctx,img,x,y,w,h,filter,index,radius=18){
+  ctx.save();roundRectPath(ctx,x,y,w,h,radius);ctx.clip();
   if(img){ctx.filter=filter;drawCover(ctx,img,x,y,w,h);ctx.filter='none'}
   else{const grd=ctx.createLinearGradient(x,y,x+w,y+h);grd.addColorStop(0,'#f5e0ea');grd.addColorStop(1,'#ded4f3');ctx.fillStyle=grd;ctx.fillRect(x,y,w,h);ctx.fillStyle='#a795af';ctx.font=`900 ${Math.round(Math.min(w,h)*.18)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✧',x+w/2,y+h/2-20);ctx.font=`bold ${Math.round(Math.min(w,h)*.11)}px Arial`;ctx.fillText(`PHOTO ${String(index+1).padStart(2,'0')}`,x+w/2,y+h/2+22)}
   ctx.restore();
-  ctx.save();ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';roundRectPath(ctx,x,y,w,h,18);ctx.stroke();ctx.restore();
+  ctx.save();ctx.lineWidth=3;ctx.strokeStyle='rgba(255,255,255,.85)';roundRectPath(ctx,x,y,w,h,radius);ctx.stroke();ctx.restore();
 }
 async function renderPreview(){
   if(state.customFrame){const req=++state.renderNonce;return renderAdminCustomFrame(req)}
@@ -407,26 +431,57 @@ async function renderPreview(){
   const allX=preset.slots.flatMap(s=>[s.x*preset.w,(s.x+s.w)*preset.w]),allY=preset.slots.flatMap(s=>[s.y*preset.h,(s.y+s.h)*preset.h]);
   const geometry={w:preset.w,h:preset.h,innerLeft:Math.min(...allX),innerTop:Math.min(...allY),innerBottom:Math.max(...allY)};makeFramePattern(ctx,geometry,ink);
 
-  if(state.theme==='film' || preset.id==='film3'){ctx.fillStyle=ink;ctx.globalAlpha=.18;ctx.fillRect(30,26,preset.w-60,10);ctx.fillRect(30,preset.h-36,preset.w-60,10);ctx.globalAlpha=1}
-  ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=`900 ${preset.orientation==='portrait'?28:30}px Arial,sans-serif`;
-  if(state.showLogo)ctx.fillText(style.brand,preset.w/2,55);else ctx.fillText('✧ ✧ ✧',preset.w/2,55);
-  ctx.font='12px Arial,sans-serif';ctx.globalAlpha=.68;ctx.fillText(preset.badge.toUpperCase(),preset.w/2,82);ctx.globalAlpha=1;
+  const isDoubleFour=preset.id==='basic4-double';
+  if(!isDoubleFour){
+    if(state.theme==='film' || preset.id==='film3'){
+      ctx.fillStyle=ink;ctx.globalAlpha=.18;ctx.fillRect(30,26,preset.w-60,10);ctx.fillRect(30,preset.h-36,preset.w-60,10);ctx.globalAlpha=1;
+    }
+    ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`900 ${preset.orientation==='portrait'?28:30}px Arial,sans-serif`;
+    if(state.showLogo)ctx.fillText(style.brand,preset.w/2,55);
+  }
 
   const filter=FILTERS.find(f=>f[0]===state.filter)?.[2]||'none';
-  preset.slots.forEach((slot,slotIndex)=>{const x=slot.x*preset.w,y=slot.y*preset.h,w=slot.w*preset.w,h=slot.h*preset.h;drawPhotoSlot(ctx,resources[slot.photo]||null,x,y,w,h,filter,slot.photo);if(preset.id==='basic4-double'&&slotIndex===3){ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillRect(preset.w*.49,preset.h*.07,4,preset.h*.69)}});
+  preset.slots.forEach(slot=>{
+    const x=slot.x*preset.w,y=slot.y*preset.h,w=slot.w*preset.w,h=slot.h*preset.h;
+    drawPhotoSlot(ctx,resources[slot.photo]||null,x,y,w,h,filter,slot.photo,isDoubleFour?2:18);
+  });
 
-  const footerTop=preset.footerTop*preset.h;
+  const title=state.title.trim()||DEFAULTS.title;
+  const subtitle=state.subtitle.trim();
+  const d=state.date;
+  const dateText=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
   ctx.fillStyle=ink;ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.font=state.font==='serif'?'700 39px Georgia,serif':state.font==='hand'?'italic 700 39px cursive':'900 39px Arial,sans-serif';
-  const title=state.title.trim()||DEFAULTS.title;fitText(ctx,title,preset.w-160,39,22);ctx.fillText(title,preset.w/2,footerTop+62);
-  ctx.font=state.font==='serif'?'21px Georgia,serif':'20px Arial,sans-serif';ctx.globalAlpha=.86;
-  const subtitle=state.subtitle.trim()||DEFAULTS.subtitle;fitText(ctx,subtitle,preset.w-180,20,13);ctx.fillText(subtitle,preset.w/2,footerTop+110);
-  ctx.globalAlpha=.55;ctx.font='bold 17px Arial,sans-serif';
-  if(state.showDate){const d=state.date;ctx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`,preset.w/2,footerTop+152)}
-  ctx.globalAlpha=.25;ctx.fillRect(preset.w*.17,footerTop+182,preset.w*.66,2);ctx.globalAlpha=1;
-  ctx.font='bold 15px Arial,sans-serif';ctx.fillStyle=ink;ctx.fillText(getCurrentPreset().name.toUpperCase(),preset.w/2,footerTop+214);
-  if(logo){const maxW=preset.orientation==='portrait'?120:140,maxH=62,scale=Math.min(maxW/logo.width,maxH/logo.height);ctx.drawImage(logo,preset.w-maxW-46,preset.h-90,logo.width*scale,logo.height*scale)}
+  if(isDoubleFour){
+    // Two 2x6 strips. Each gets its own complete footer, just like a cut-to-share print.
+    for(const centerX of [preset.w*.25,preset.w*.75]){
+      ctx.globalAlpha=1;
+      ctx.font=state.font==='serif'?'700 48px Georgia,serif':state.font==='hand'?'italic 700 48px cursive':'900 48px Arial,sans-serif';
+      fitText(ctx,title,preset.w*.42,48,26);
+      ctx.fillText(title,centerX,preset.h*.901);
+      if(subtitle){
+        ctx.globalAlpha=.85;ctx.font=state.font==='serif'?'21px Georgia,serif':'20px Arial,sans-serif';
+        fitText(ctx,subtitle,preset.w*.42,20,14);ctx.fillText(subtitle,centerX,preset.h*.939);
+      }
+      if(state.showDate){
+        ctx.globalAlpha=.67;ctx.font='17px Arial,sans-serif';ctx.fillText(dateText,centerX,preset.h*.965);
+      }
+    }
+    ctx.globalAlpha=1;
+    // Thin center cutting line only; no empty sheet-wide footer or layout name.
+    ctx.save();ctx.strokeStyle=ink;ctx.globalAlpha=.25;ctx.lineWidth=2;ctx.setLineDash([7,9]);
+    ctx.beginPath();ctx.moveTo(preset.w/2,0);ctx.lineTo(preset.w/2,preset.h);ctx.stroke();ctx.restore();
+    if(logo){const scale=Math.min(74/logo.width,45/logo.height);for(const centerX of [preset.w*.25,preset.w*.75])ctx.drawImage(logo,centerX-37,preset.h*.982,logo.width*scale,logo.height*scale)}
+  }else{
+    const footerTop=preset.footerTop*preset.h;
+    ctx.font=state.font==='serif'?'700 39px Georgia,serif':state.font==='hand'?'italic 700 39px cursive':'900 39px Arial,sans-serif';
+    fitText(ctx,title,preset.w-160,39,22);ctx.fillText(title,preset.w/2,footerTop+62);
+    if(subtitle){ctx.font=state.font==='serif'?'21px Georgia,serif':'20px Arial,sans-serif';ctx.globalAlpha=.86;fitText(ctx,subtitle,preset.w-180,20,13);ctx.fillText(subtitle,preset.w/2,footerTop+110)}
+    ctx.globalAlpha=.65;ctx.font='bold 17px Arial,sans-serif';
+    if(state.showDate)ctx.fillText(dateText,preset.w/2,footerTop+152);
+    ctx.globalAlpha=1;
+    if(logo){const maxW=preset.orientation==='portrait'?120:140,maxH=62,scale=Math.min(maxW/logo.width,maxH/logo.height);ctx.drawImage(logo,preset.w-maxW-46,preset.h-90,logo.width*scale,logo.height*scale)}
+  }
 
   for(const sticker of state.stickers){const x=sticker.x*preset.w,y=sticker.y*preset.h,size=Math.round(Math.min(preset.w,preset.h)*.06);ctx.save();ctx.font=`${size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#43334a55';ctx.shadowBlur=3;ctx.fillText(sticker.emoji,x,y);ctx.restore();if(sticker.id===state.selectedSticker && state.page==='edit'){ctx.save();ctx.setLineDash([9,7]);ctx.lineWidth=3;ctx.strokeStyle='#9c60d8';ctx.strokeRect(x-size*.58,y-size*.59,size*1.16,size*1.18);ctx.restore()}}
   return canvas;
