@@ -66,11 +66,11 @@
     <section id="setup" class="page workspace" aria-label="촬영 설정 페이지">
       <div class="page-head"><div><div class="section-kicker">STEP 01 <span>✦</span> GET READY</div><h2>먼저, 촬영을 준비해요 <span class="tiny-heart">♡</span></h2><p>촬영 방식과 컷 수를 고른 뒤 카메라로 이동해요.</p></div><div class="step-meter"><span class="current">01 준비</span><i></i><span>02 촬영</span><i></i><span>03 꾸미기</span><i></i><span>04 완성</span></div></div>
       <div class="setup-grid">
-        <div class="setup-welcome panel"><div class="setup-illustration">▧ <span>✦</span></div><div class="section-kicker">YOUR PHOTO BOOTH</div><h3>오늘은 어떤 네컷을<br>남겨볼까요?</h3><p>자유롭게 설정하고, 마음에 들지 않으면 촬영 후 다시 찍을 수도 있어요.</p><div class="setup-tips"><span>✓ 4컷 / 6컷</span><span>✓ 수동 / 자동</span><span>✓ 개별 재촬영</span></div></div>
+        <div class="setup-welcome panel"><div class="setup-illustration">▧ <span>✦</span></div><div class="section-kicker">YOUR PHOTO BOOTH</div><h3>오늘은 어떤 네컷을<br>남겨볼까요?</h3><p>자유롭게 설정하고, 마음에 들지 않으면 촬영 후 다시 찍을 수도 있어요.</p><div class="setup-tips"><span>✓ 레이아웃 먼저 선택</span><span>✓ 3·5·10초 / 수동</span><span>✓ 개별 재촬영 + 전체 초기화</span></div></div>
         <div class="setup-controls">          <div class="panel setting-card"><div class="card-head"><span class="mini-icon">⚙</span><h3>촬영 설정</h3></div>
-            <div class="field"><label>사진 개수</label><div class="segmented" id="countSelector"><button class="selected" data-count="4">4컷</button><button data-count="6">6컷</button></div></div>
-            <div class="field"><label>촬영 방식</label><div class="mode-grid" id="timerSelector"><button class="selected" data-timer="3"><b>3초</b><small>자동</small></button><button data-timer="5"><b>5초</b><small>자동</small></button><button data-timer="0"><b>직접</b><small>수동 촬영</small></button></div></div>
-            <p class="hint-box" id="modeHint">✧ 셔터를 누르면 3초 카운트다운 후 촬영해요. 남은 컷도 자동으로 찍어요.</p>
+            <div class="field"><label>레이아웃 선택</label><div class="setup-layout-grid" id="setupLayoutOptions"></div></div>
+            <div class="field"><label>촬영 방식</label><div class="mode-grid mode-grid-four" id="timerSelector"><button class="selected" data-timer="3"><b>3초</b><small>자동</small></button><button data-timer="5"><b>5초</b><small>자동</small></button><button data-timer="10"><b>10초</b><small>자동</small></button><button data-timer="0"><b>직접</b><small>수동 촬영</small></button></div></div>
+            <p class="hint-box" id="modeHint">✧ 레이아웃을 먼저 고른 뒤 셔터를 누르면 3초 카운트다운 후 촬영해요. 남은 컷도 자동으로 찍어요.</p>
           </div>
 <div class="panel setup-next"><p id="setupSummary">4컷 · 3초 자동 촬영</p><button id="beginCaptureBtn" class="btn btn-dark btn-full btn-large">설정 완료 · 사진 찍으러 가기 →</button><button id="fullResetSetupBtn" class="text-button">처음부터 초기화하기</button></div></div>
       </div>
@@ -128,16 +128,17 @@
             <button class="edit-tab" data-tab="text" role="tab" aria-selected="false">Aa<small>텍스트·로고</small></button>
           </div>
           <div class="tab-body active" id="tab-frame">
+            <div class="control-group"><h4>선택한 레이아웃 <small>촬영 전에 고른 레이아웃이에요</small></h4><div class="layout-grid" id="layoutOptions"></div></div>
+            <div class="control-group"><h4>기본 프레임 컬렉션 <small>카테고리별로 골라보세요</small></h4><div id="builtinFrameOptions" class="builtin-frame-catalog"></div></div>
             <div class="control-group"><h4>관리자 특별 프레임 <small>이번 촬영 컷 수에 맞는 프레임이 보여요</small></h4><div class="community-frame-grid" id="adminFrameOptions"><p class="small-note">등록된 특별 프레임을 확인 중이에요.</p></div><button id="clearAdminFrameBtn" class="text-button hidden">기본 프레임으로 돌아가기</button></div>
-            <div class="control-group"><h4>레이아웃 <small>사진 배치를 선택하세요</small></h4><div class="layout-grid" id="layoutOptions"></div></div>
-            <div class="control-group"><h4>프레임 테마</h4><div class="theme-list" id="themeOptions"></div></div>
-            <div class="control-group"><h4>프레임 컬러</h4><div class="swatch-row" id="colorOptions"></div><div class="custom-color"><label for="customFrameColor">나만의 색상</label><input type="color" id="customFrameColor" value="#f8b5cf"></div></div>
+            <div class="control-group"><h4>프레임 테마 세부 조정</h4><div class="theme-list" id="themeOptions"></div></div>
+            <div class="control-group"><h4>프레임 컬러 세부 조정</h4><div class="swatch-row" id="colorOptions"></div><div class="custom-color"><label for="customFrameColor">나만의 색상</label><input type="color" id="customFrameColor" value="#f8b5cf"></div></div>
           </div>
           <div class="tab-body" id="tab-filter"><div class="control-group"><h4>사진 필터 <small>모든 사진에 적용돼요</small></h4><div class="filter-grid" id="filterOptions"></div></div><div class="soft-callout">✦ 필터를 누르면 실시간으로 미리볼 수 있어요.</div></div>
           <div class="tab-body" id="tab-sticker"><div class="control-group"><h4>스티커 고르기 <small>눌러서 추가해요</small></h4><div class="sticker-grid" id="stickerOptions"></div></div><div class="soft-callout">✎ 미리보기에서 스티커를 움직일 수 있어요. 스티커를 선택하고 아래 버튼으로 지울 수도 있어요.</div><button class="btn btn-outline btn-full" id="removeStickerBtn" disabled>선택한 스티커 삭제 ✕</button><button class="text-button clear-stickers" id="clearStickersBtn">스티커 전체 지우기</button></div>
           <div class="tab-body" id="tab-text">
-            <div class="control-group"><label class="form-label" for="printTitle">사진 아래 문구</label><input type="text" id="printTitle" maxlength="32" placeholder="our little moment ♡" value="our little moment ♡"></div>
-            <div class="control-group"><label class="form-label" for="printSubtitle">작은 메시지</label><input type="text" id="printSubtitle" maxlength="44" placeholder="영원히 기억할 오늘" value="영원히 기억할 오늘"></div>
+            <div class="control-group"><label class="form-label" for="printTitle">사진 아래 문구</label><input type="text" id="printTitle" maxlength="32" placeholder="Feel;m" value="Feel;m"></div>
+            <div class="control-group"><label class="form-label" for="printSubtitle">작은 메시지</label><input type="text" id="printSubtitle" maxlength="44" placeholder="our little moment" value="our little moment"></div>
             <div class="control-group"><h4>글씨체</h4><div class="segmented" id="fontSelector"><button class="selected" data-font="sans">깔끔하게</button><button data-font="serif">감성있게</button><button data-font="hand">손글씨</button></div></div>
             <div class="control-group"><label class="check-line"><input type="checkbox" id="showDate" checked><span>촬영 날짜 표시</span></label><label class="check-line"><input type="checkbox" id="showLogo" checked><span>모먼트컷 로고 표시</span></label></div>
             <div class="control-group"><label class="form-label">내 로고 추가하기 (선택)</label><label class="upload-custom">＋ 로고 이미지 올리기<input type="file" id="logoUpload" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label><button id="clearLogoBtn" class="text-button hidden">로고 지우기</button><p class="small-note" id="logoFileName">투명 배경 PNG를 추천해요.</p></div>
