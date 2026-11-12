@@ -16,11 +16,11 @@
     </a>
     <nav class="main-nav" aria-label="주요 메뉴">
       <button class="nav-link active" data-go="home">홈</button>
-      <button class="nav-link" data-go="capture">사진 찍기</button>
+      <button class="nav-link" data-go="setup">촬영 준비</button>
       <button class="nav-link" data-go="edit">꾸미기</button>
       <button class="nav-link" data-go="result">완성하기</button>
     </nav>
-    <button class="header-cta" data-go="capture">포토부스 입장 <span aria-hidden="true">↗</span></button>
+    <button class="header-cta" data-go="setup">포토부스 입장 <span aria-hidden="true">↗</span></button>
   </header>
 
   <main id="main">
@@ -31,7 +31,7 @@
           <h1>우리의 순간을<br><span class="text-marker">찰칵,</span> 네 컷에.</h1>
           <p class="hero-lead">특별한 날도, 평범한 오늘도.<br>카메라만 있으면 어디서든 우리만의 인생네컷 완성!</p>
           <div class="hero-actions">
-            <button class="btn btn-dark btn-large" data-go="capture">📸 지금 사진 찍기 <span class="arrow">↗</span></button>
+            <button class="btn btn-dark btn-large" data-go="setup">📸 지금 사진 찍기 <span class="arrow">↗</span></button>
             <button class="btn btn-outline btn-large" id="demoBtn">샘플로 체험하기 <span class="arrow">→</span></button>
           </div>
           <div class="hero-mini"><span class="mini-stars">✦ ✦ ✦</span><span>설치 없이 · 무료로 · 바로 시작</span></div>
@@ -55,7 +55,7 @@
         <div class="section-kicker">HOW IT WORKS <span>✺</span></div>
         <h2 id="howTitle">딱 세 단계면 완성!</h2>
         <div class="how-grid">
-          <div class="how-card"><div class="how-icon lavender">▣</div><span class="how-no">01 /</span><h3>촬영하고</h3><p>3초·5초 타이머 또는 원하는 순간 직접 찰칵!</p></div>
+          <div class="how-card"><div class="how-icon lavender">▣</div><span class="how-no">01 /</span><h3>설정하고 촬영하고</h3><p>컷 수와 타이머를 먼저 고른 뒤 찰칵!</p></div>
           <div class="how-card"><div class="how-icon pink">✿</div><span class="how-no">02 /</span><h3>내 스타일로 꾸미고</h3><p>프레임, 필터, 스티커, 글씨까지 마음껏.</p></div>
           <div class="how-card"><div class="how-icon yellow">↧</div><span class="how-no">03 /</span><h3>저장하고 공유하기</h3><p>고화질 PNG로 저장하고 QR로 나눠봐요.</p></div>
         </div>
@@ -63,10 +63,23 @@
       <div class="bottom-ribbon">MAKE MEMORIES <span>✳</span> KEEP MEMORIES <span>✳</span> MAKE MEMORIES <span>✳</span></div>
     </section>
 
+    <section id="setup" class="page workspace" aria-label="촬영 설정 페이지">
+      <div class="page-head"><div><div class="section-kicker">STEP 01 <span>✦</span> GET READY</div><h2>먼저, 촬영을 준비해요 <span class="tiny-heart">♡</span></h2><p>촬영 방식과 컷 수를 고른 뒤 카메라로 이동해요.</p></div><div class="step-meter"><span class="current">01 준비</span><i></i><span>02 촬영</span><i></i><span>03 꾸미기</span><i></i><span>04 완성</span></div></div>
+      <div class="setup-grid">
+        <div class="setup-welcome panel"><div class="setup-illustration">▧ <span>✦</span></div><div class="section-kicker">YOUR PHOTO BOOTH</div><h3>오늘은 어떤 네컷을<br>남겨볼까요?</h3><p>자유롭게 설정하고, 마음에 들지 않으면 촬영 후 다시 찍을 수도 있어요.</p><div class="setup-tips"><span>✓ 4컷 / 6컷</span><span>✓ 수동 / 자동</span><span>✓ 개별 재촬영</span></div></div>
+        <div class="setup-controls">          <div class="panel setting-card"><div class="card-head"><span class="mini-icon">⚙</span><h3>촬영 설정</h3></div>
+            <div class="field"><label>사진 개수</label><div class="segmented" id="countSelector"><button class="selected" data-count="4">4컷</button><button data-count="6">6컷</button></div></div>
+            <div class="field"><label>촬영 방식</label><div class="mode-grid" id="timerSelector"><button class="selected" data-timer="3"><b>3초</b><small>자동</small></button><button data-timer="5"><b>5초</b><small>자동</small></button><button data-timer="0"><b>직접</b><small>수동 촬영</small></button></div></div>
+            <p class="hint-box" id="modeHint">✧ 셔터를 누르면 3초 카운트다운 후 촬영해요. 남은 컷도 자동으로 찍어요.</p>
+          </div>
+<div class="panel setup-next"><p id="setupSummary">4컷 · 3초 자동 촬영</p><button id="beginCaptureBtn" class="btn btn-dark btn-full btn-large">설정 완료 · 사진 찍으러 가기 →</button><button id="fullResetSetupBtn" class="text-button">처음부터 초기화하기</button></div></div>
+      </div>
+    </section>
+
     <section id="capture" class="page workspace" aria-label="사진 촬영 페이지">
       <div class="page-head">
-        <div><div class="section-kicker">STEP 01 <span>✦</span> CAMERA TIME</div><h2>자, 치즈! <span class="tiny-heart">♥</span></h2><p>마음에 드는 포즈로 하나씩 채워봐요.</p></div>
-        <div class="step-meter" aria-label="진행 단계"><span class="current">01 촬영</span><i></i><span>02 꾸미기</span><i></i><span>03 완성</span></div>
+        <div><div class="section-kicker">STEP 02 <span>✦</span> CAMERA TIME</div><h2>자, 치즈! <span class="tiny-heart">♥</span></h2><p>마음에 드는 포즈로 하나씩 채워봐요.</p></div>
+        <div class="step-meter" aria-label="진행 단계"><span>01 준비</span><i></i><span class="current">02 촬영</span><i></i><span>03 꾸미기</span><i></i><span>04 완성</span></div>
       </div>
       <div class="capture-grid">
         <div class="cam-main panel">
@@ -88,11 +101,7 @@
           <p class="cam-helper" id="cameraHelp">카메라 촬영은 HTTPS 또는 localhost 환경에서 사용할 수 있어요.</p>
         </div>
         <aside class="capture-sidebar">
-          <div class="panel setting-card"><div class="card-head"><span class="mini-icon">⚙</span><h3>촬영 설정</h3></div>
-            <div class="field"><label>사진 개수</label><div class="segmented" id="countSelector"><button class="selected" data-count="4">4컷</button><button data-count="6">6컷</button></div></div>
-            <div class="field"><label>촬영 방식</label><div class="mode-grid" id="timerSelector"><button class="selected" data-timer="3"><b>3초</b><small>자동</small></button><button data-timer="5"><b>5초</b><small>자동</small></button><button data-timer="0"><b>직접</b><small>수동 촬영</small></button></div></div>
-            <p class="hint-box" id="modeHint">✧ 셔터를 누르면 3초 카운트다운 후 촬영해요. 남은 컷도 자동으로 찍어요.</p>
-          </div>
+          <div class="panel session-info"><div class="card-head"><span class="mini-icon">✓</span><h3>현재 촬영 설정</h3></div><p id="captureSettingsSummary" class="session-summary">4컷 · 3초 자동 촬영</p><button class="btn btn-outline btn-full" id="backToSetupBtn">← 촬영 설정 변경</button><button class="btn btn-soft btn-full" id="fullResetCaptureBtn">↻ 처음부터 초기화</button></div>
           <div class="panel shots-panel"><div class="card-head"><span class="mini-icon">▧</span><h3>우리의 사진</h3><span class="shots-badge" id="shotBadge">0 / 4</span></div>
             <div class="shot-grid" id="shotGrid"></div>
             <p class="small-note">사진을 누르면 해당 컷만 다시 찍을 수 있어요.</p>
@@ -103,7 +112,7 @@
     </section>
 
     <section id="edit" class="page workspace" aria-label="사진 꾸미기 페이지">
-      <div class="page-head"><div><div class="section-kicker">STEP 02 <span>✦</span> MAKE IT YOURS</div><h2>우리만의 감성 더하기 <span class="tiny-heart">✿</span></h2><p>프레임과 소품을 조합해서 마음껏 꾸며봐요.</p></div><div class="step-meter"><span>01 촬영</span><i></i><span class="current">02 꾸미기</span><i></i><span>03 완성</span></div></div>
+      <div class="page-head"><div><div class="section-kicker">STEP 03 <span>✦</span> MAKE IT YOURS</div><h2>우리만의 감성 더하기 <span class="tiny-heart">✿</span></h2><p>프레임과 소품을 조합해서 마음껏 꾸며봐요.</p></div><div class="step-meter"><span>01 준비</span><i></i><span>02 촬영</span><i></i><span class="current">03 꾸미기</span><i></i><span>04 완성</span></div></div>
       <div class="edit-grid">
         <div class="preview-panel panel">
           <div class="preview-header"><span class="preview-label">LIVE PREVIEW <span class="preview-red">●</span></span><button class="text-button" id="shuffleStyleBtn">↻ 랜덤 꾸미기</button></div>
@@ -119,6 +128,7 @@
             <button class="edit-tab" data-tab="text" role="tab" aria-selected="false">Aa<small>텍스트·로고</small></button>
           </div>
           <div class="tab-body active" id="tab-frame">
+            <div class="control-group"><h4>관리자 특별 프레임 <small>이번 촬영 컷 수에 맞는 프레임이 보여요</small></h4><div class="community-frame-grid" id="adminFrameOptions"><p class="small-note">등록된 특별 프레임을 확인 중이에요.</p></div><button id="clearAdminFrameBtn" class="text-button hidden">기본 프레임으로 돌아가기</button></div>
             <div class="control-group"><h4>레이아웃 <small>사진 배치를 선택하세요</small></h4><div class="layout-grid" id="layoutOptions"></div></div>
             <div class="control-group"><h4>프레임 테마</h4><div class="theme-list" id="themeOptions"></div></div>
             <div class="control-group"><h4>프레임 컬러</h4><div class="swatch-row" id="colorOptions"></div><div class="custom-color"><label for="customFrameColor">나만의 색상</label><input type="color" id="customFrameColor" value="#f8b5cf"></div></div>
@@ -133,12 +143,13 @@
             <div class="control-group"><label class="form-label">내 로고 추가하기 (선택)</label><label class="upload-custom">＋ 로고 이미지 올리기<input type="file" id="logoUpload" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden></label><button id="clearLogoBtn" class="text-button hidden">로고 지우기</button><p class="small-note" id="logoFileName">투명 배경 PNG를 추천해요.</p></div>
           </div>
           <div class="customize-actions"><button class="btn btn-outline" data-go="capture">← 사진 다시 찍기</button><button class="btn btn-dark" id="finishBtn">완성하기 →</button></div>
+          <button id="fullResetEditBtn" class="text-button full-reset-link">↻ 모든 사진과 설정 처음부터 초기화</button>
         </div>
       </div>
     </section>
 
     <section id="result" class="page workspace" aria-label="사진 저장 및 공유 페이지">
-      <div class="page-head result-head"><div><div class="section-kicker">STEP 03 <span>✦</span> THE FINAL CUT</div><h2>짜잔, 완성이에요! <span class="tiny-heart">♡</span></h2><p>오늘의 순간이 오래도록 기억에 남기를.</p></div><div class="step-meter"><span>01 촬영</span><i></i><span>02 꾸미기</span><i></i><span class="current">03 완성</span></div></div>
+      <div class="page-head result-head"><div><div class="section-kicker">STEP 04 <span>✦</span> THE FINAL CUT</div><h2>짜잔, 완성이에요! <span class="tiny-heart">♡</span></h2><p>오늘의 순간이 오래도록 기억에 남기를.</p></div><div class="step-meter"><span>01 준비</span><i></i><span>02 촬영</span><i></i><span>03 꾸미기</span><i></i><span class="current">04 완성</span></div></div>
       <div class="result-grid">
         <div class="result-showcase"><div class="result-sparkle star-one">✦</div><div class="result-sparkle star-two">✳</div><img id="finalImage" alt="완성한 포토스트립" src=""><div class="result-stage-note">made with ♡ at momentcut.</div></div>
         <aside class="result-actions panel"><div class="result-congrats">🎉 <span>PHOTO COMPLETE!</span></div><h3>우리의 오늘,<br>오래오래 간직해요.</h3><p>저장도 공유도 한 번에! 완성된 사진은 고화질 PNG로 저장할 수 있어요.</p>
@@ -148,7 +159,7 @@
           <button class="btn btn-soft btn-full" id="createShareBtn">▦ 공유 링크 · QR 만들기</button>
           <div id="shareBox" class="share-box hidden"><div class="qr-wrap"><img id="qrImage" alt="사진 공유 링크 QR 코드"></div><div class="share-box-text"><strong>QR을 스캔하면 사진이 열려요</strong><p>링크를 아는 사람은 누구나 볼 수 있고, 링크는 7일 후 만료돼요.</p><div class="copy-line"><input type="text" id="shareLink" readonly aria-label="사진 공유 링크"><button id="copyLinkBtn">복사</button></div></div></div>
           <p class="share-note" id="shareStatus" role="status" aria-live="polite"></p>
-          <div class="result-bottom-actions"><button class="text-button" data-go="edit">← 다시 꾸미기</button><button class="text-button" data-go="capture">새 사진 찍기 ↗</button></div>
+          <div class="result-bottom-actions"><button class="text-button" data-go="edit">← 다시 꾸미기</button><button class="text-button" id="fullResetResultBtn">↻ 처음부터 새로 시작하기</button></div>
         </aside>
       </div>
     </section>

@@ -1,11 +1,11 @@
 {
   "name": "momentcut-photo-booth",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "모먼트컷 사진 촬영 및 프레임 꾸미기 - GitHub/Vercel 배포용",
+  "description": "MomentCut v2 - setup-first photo booth + authenticated frame administration for Vercel",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check vercel-api.mjs && node --check public/app.js && node --test test/*.mjs",
+    "check": "node --check server.js && node --check vercel-api.mjs && node --check admin-api.mjs && node --check frame-store.mjs && node --check public/app.js && node --check public/admin.js && node --test test/*.mjs",
     "test": "node --test test/*.mjs"
   },
   "dependencies": {

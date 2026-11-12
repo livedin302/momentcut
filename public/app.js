@@ -16,7 +16,7 @@ const state = {
   count:4,timer:3,photos:[null,null,null,null],stream:null,busy:false,retakeIndex:null,
   color:'#ffd2e2',theme:'clean',layout:'vertical',filter:'none',stickers:[],selectedSticker:null,
   title:'our little moment ♡',subtitle:'영원히 기억할 오늘',font:'sans',showDate:true,showLogo:true,
-  logoUrl:null,date:new Date(),shareUrl:null,page:'home',renderNonce:0
+  logoUrl:null,date:new Date(),shareUrl:null,page:'home',renderNonce:0,setupDone:false,customFrame:null,availableFrames:[]
 };
 const photoCache = new Map();
 let toastTimer = null;
@@ -24,7 +24,8 @@ function toast(message){ui.toast.textContent=message;ui.toast.classList.add('sho
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function escapeHTML(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;')}
 function go(page){
-  if(!['home','capture','edit','result'].includes(page))return;
+  if(!['home','setup','capture','edit','result'].includes(page))return;
+  if(page==='capture'&&!state.setupDone){page='setup';}
   if(state.busy && state.page==='capture' && page!=='capture'){toast('촬영을 마친 뒤 이동할 수 있어요.');return;}
   if(page==='result' && state.photos.every(p=>!p)){toast('촬영하거나 샘플로 체험한 뒤 완성할 수 있어요.');page='capture'}
   if(page==='edit' && state.photos.every(p=>!p)){toast('먼저 사진을 찍거나 샘플로 체험해 주세요.');page='capture'}
@@ -33,13 +34,13 @@ function go(page){
   $$('.nav-link').forEach(b=>b.classList.toggle('active',b.dataset.go===page));
   state.page=page;window.scrollTo({top:0,behavior:'instant'});
   if(page==='capture')startCamera();
-  if(page==='edit')renderPreview();
+  if(page==='edit'){loadAdminFrames();renderPreview();}
   if(page==='result')showResult();
   history.replaceState(null,'','#'+page);
 }
 $$('[data-go]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();go(b.dataset.go)}));
 $('#demoBtn').addEventListener('click',()=>{
-  stopCamera();state.count=4;state.photos=createDemoPhotos(4);state.retakeIndex=null;
+  stopCamera();state.count=4;state.photos=createDemoPhotos(4);state.retakeIndex=null;state.setupDone=true;
   updateCaptureUI();renderLayoutOptions();toast('샘플 사진으로 꾸미기를 시작해 볼까요?');go('edit');
 });
 
@@ -72,15 +73,35 @@ $('#openCameraBtn').addEventListener('click',()=>state.stream?stopCamera():start
 function setCount(n){
   if(state.busy)return;
   state.count=n;state.photos=Array.from({length:n},(_,i)=>state.photos[i]||null);
-  state.retakeIndex=null;state.layout=n===4?'vertical':'grid2';
-  updateCaptureUI();renderLayoutOptions();renderPreview();
+  state.retakeIndex=null;state.layout=n===4?'vertical':'grid2';state.customFrame=null;
+  updateCaptureUI();renderLayoutOptions();renderPreview();updateSetupSummary();
 }
 function setTimer(n){state.timer=n;$$('#timerSelector button').forEach(b=>b.classList.toggle('selected',Number(b.dataset.timer)===n));
   $('#modeHint').textContent=n===0?'✧ 셔터를 누를 때마다 한 컷씩 촬영해요. 원하는 타이밍에 찰칵!':`✧ 셔터를 누르면 ${n}초 카운트다운 후 촬영해요. 남은 컷도 자동으로 찍어요.`;
-  updateCaptureUI();
+  updateCaptureUI();updateSetupSummary();
 }
 $$('#countSelector button').forEach(b=>b.addEventListener('click',()=>setCount(Number(b.dataset.count))));
 $$('#timerSelector button').forEach(b=>b.addEventListener('click',()=>setTimer(Number(b.dataset.timer))));
+function updateSetupSummary(){
+  const description=`${state.count}컷 · ${state.timer===0?'직접 촬영':state.timer+'초 자동 촬영'}`;
+  $('#setupSummary').textContent=description;
+  $('#captureSettingsSummary').textContent=description;
+}
+$('#beginCaptureBtn').addEventListener('click',()=>{state.setupDone=true;go('capture')});
+$('#backToSetupBtn').addEventListener('click',()=>go('setup'));
+function fullReset(){
+  if(state.busy){toast('촬영이 끝난 후 초기화할 수 있어요.');return}
+  if(!window.confirm('촬영한 모든 사진과 꾸미기 설정을 지우고 처음부터 다시 시작할까요?'))return;
+  stopCamera();photoCache.clear();state.renderNonce++;
+  Object.assign(state,{count:4,timer:3,photos:[null,null,null,null],retakeIndex:null,setupDone:false,shareUrl:null,date:new Date(),customFrame:null});
+  const old=$('#finalImage').dataset.objectUrl;if(old)URL.revokeObjectURL(old);
+  $('#finalImage').removeAttribute('src');delete $('#finalImage').dataset.objectUrl;
+  $('#shareBox').classList.add('hidden');$('#shareStatus').textContent='';$('#shareLink').value='';
+  $('#countdown').classList.add('hidden');$('#photoUpload').value='';resetStyle();
+  setTimer(3);updateCaptureUI();updateSetupSummary();go('setup');toast('사진과 설정을 모두 초기화했어요.');
+}
+['fullResetCaptureBtn','fullResetEditBtn','fullResetResultBtn','fullResetSetupBtn'].forEach(id=>$('#'+id).addEventListener('click',fullReset));
+
 function updateCaptureUI(){
   $$('#countSelector button').forEach(b=>b.classList.toggle('selected',Number(b.dataset.count)===state.count));
   let filled=state.photos.filter(Boolean).length;
@@ -157,17 +178,17 @@ function drawCover(ctx,img,x,y,w,h){
 function getLayouts(){return state.count===4?[['vertical','세로 4컷',1,4],['grid2','2 × 2',2,2]]:[['grid2','2 × 3',2,3],['vertical','세로 6컷',1,6],['grid3','3 × 2',3,2]]}
 function renderLayoutOptions(){
   $('#layoutOptions').innerHTML=getLayouts().map(([id,label,cols,rows])=>`<button class="layout-opt ${state.layout===id?'selected':''}" data-layout="${id}" aria-pressed="${state.layout===id}"><span class="layout-drawing" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr)">${Array.from({length:state.count},()=>'<b></b>').join('')}</span>${label}</button>`).join('');
-  $$('[data-layout]').forEach(b=>b.addEventListener('click',()=>{state.layout=b.dataset.layout;renderLayoutOptions();renderPreview()}));
+  $$('[data-layout]').forEach(b=>b.addEventListener('click',()=>{state.layout=b.dataset.layout;state.customFrame=null;renderAdminFrameOptions();renderLayoutOptions();renderPreview()}));
 }
 function renderThemeOptions(){
   $('#themeOptions').innerHTML=THEMES.map(([id,label])=>`<button class="theme-chip ${state.theme===id?'selected':''}" data-theme="${id}">${label}</button>`).join('');
-  $$('[data-theme]').forEach(b=>b.addEventListener('click',()=>{state.theme=b.dataset.theme;renderThemeOptions();renderPreview()}));
+  $$('[data-theme]').forEach(b=>b.addEventListener('click',()=>{state.theme=b.dataset.theme;state.customFrame=null;renderAdminFrameOptions();renderThemeOptions();renderPreview()}));
 }
 function renderColorOptions(){
   $('#colorOptions').innerHTML=PALETTE.map(([label,c])=>`<button class="swatch ${state.color===c?'selected':''}" data-color="${c}" style="background:${c}" aria-label="${label}" title="${label}" aria-pressed="${state.color===c}"></button>`).join('');
-  $$('[data-color]').forEach(b=>b.addEventListener('click',()=>{state.color=b.dataset.color;$('#customFrameColor').value=state.color;renderColorOptions();renderPreview()}));
+  $$('[data-color]').forEach(b=>b.addEventListener('click',()=>{state.color=b.dataset.color;state.customFrame=null;renderAdminFrameOptions();$('#customFrameColor').value=state.color;renderColorOptions();renderPreview()}));
 }
-$('#customFrameColor').addEventListener('input',e=>{state.color=e.target.value;renderColorOptions();renderPreview()});
+$('#customFrameColor').addEventListener('input',e=>{state.color=e.target.value;state.customFrame=null;renderAdminFrameOptions();renderColorOptions();renderPreview()});
 function renderFilterOptions(){
   $('#filterOptions').innerHTML=FILTERS.map(([id,label,css])=>`<button class="filter-item ${state.filter===id?'selected':''}" data-filter="${id}"><div class="filter-thumb" style="filter:${css}"></div>${label}</button>`).join('');
   $$('[data-filter]').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;renderFilterOptions();renderPreview()}));
@@ -204,7 +225,7 @@ $('#logoUpload').addEventListener('change',async e=>{
 });
 $('#clearLogoBtn').addEventListener('click',()=>{state.logoUrl=null;$('#clearLogoBtn').classList.add('hidden');$('#logoFileName').textContent='투명 배경 PNG를 추천해요.';renderPreview()});
 function resetStyle(){
-  Object.assign(state,{color:'#ffd2e2',theme:'clean',layout:state.count===4?'vertical':'grid2',filter:'none',stickers:[],selectedSticker:null,title:'our little moment ♡',subtitle:'영원히 기억할 오늘',font:'sans',showDate:true,showLogo:true,logoUrl:null});
+  Object.assign(state,{customFrame:null,color:'#ffd2e2',theme:'clean',layout:state.count===4?'vertical':'grid2',filter:'none',stickers:[],selectedSticker:null,title:'our little moment ♡',subtitle:'영원히 기억할 오늘',font:'sans',showDate:true,showLogo:true,logoUrl:null});
   $('#printTitle').value=state.title;$('#printSubtitle').value=state.subtitle;$('#showDate').checked=true;$('#showLogo').checked=true;
   $('#customFrameColor').value=state.color;$('#clearLogoBtn').classList.add('hidden');$('#logoFileName').textContent='투명 배경 PNG를 추천해요.';
   $$('#fontSelector button').forEach(b=>b.classList.toggle('selected',b.dataset.font===state.font));$('#removeStickerBtn').disabled=true;
@@ -213,10 +234,33 @@ function resetStyle(){
 $('#resetStyleBtn').addEventListener('click',()=>{resetStyle();toast('꾸미기 설정을 초기화했어요.')});
 $('#shuffleStyleBtn').addEventListener('click',()=>{
   const layouts=getLayouts();state.color=PALETTE[Math.floor(Math.random()*PALETTE.length)][1];state.theme=THEMES[Math.floor(Math.random()*THEMES.length)][0];
-  state.filter=FILTERS[Math.floor(Math.random()*FILTERS.length)][0];state.layout=layouts[Math.floor(Math.random()*layouts.length)][0];
+  state.filter=FILTERS[Math.floor(Math.random()*FILTERS.length)][0];state.customFrame=null;renderAdminFrameOptions();state.layout=layouts[Math.floor(Math.random()*layouts.length)][0];
   $('#customFrameColor').value=state.color;renderAllOptions();renderPreview();
 });
 function renderAllOptions(){renderLayoutOptions();renderThemeOptions();renderColorOptions();renderFilterOptions();renderStickerOptions()}
+async function loadAdminFrames(){
+  try{
+    const response=await fetch('/api/frames',{cache:'no-store'});
+    if(!response.ok)throw Error('관리자 프레임 서버가 아직 준비되지 않았어요.');
+    const data=await response.json();state.availableFrames=Array.isArray(data.frames)?data.frames:[];
+    if(state.customFrame){const newer=state.availableFrames.find(f=>f.id===state.customFrame.id);if(newer)state.customFrame=newer;}
+    renderAdminFrameOptions();
+  }catch(err){$('#adminFrameOptions').innerHTML='<p class="small-note">관리자 프레임을 불러올 수 없어요. 기본 프레임은 이용할 수 있어요.</p>';}
+}
+function renderAdminFrameOptions(){
+  const options=state.availableFrames.filter(f=>f.count===state.count);
+  $('#clearAdminFrameBtn').classList.toggle('hidden',!state.customFrame);
+  if(!options.length){$('#adminFrameOptions').innerHTML='<p class="small-note">이 컷 수에 등록된 특별 프레임이 아직 없어요.</p>';return}
+  $('#adminFrameOptions').innerHTML=options.map(frame=>`<button class="community-frame ${state.customFrame?.id===frame.id?'selected':''}" data-special-frame="${frame.id}" aria-pressed="${state.customFrame?.id===frame.id}">${frame.imageKey?`<img src="/api/frame-image?id=${encodeURIComponent(frame.id)}&v=${encodeURIComponent(frame.updatedAt)}" alt="">`:'<span class="frame-placeholder">✿</span>'}<strong>${escapeHTML(frame.name)}</strong><small>${frame.count}컷 전용</small></button>`).join('');
+  $$('[data-special-frame]').forEach(b=>b.addEventListener('click',()=>{
+    const frame=options.find(f=>f.id===b.dataset.specialFrame);if(!frame)return;
+    state.customFrame=frame;state.color=frame.color;state.title=frame.title;state.subtitle=frame.subtitle;
+    $('#printTitle').value=state.title;$('#printSubtitle').value=state.subtitle;
+    renderLayoutOptions();renderAdminFrameOptions();renderPreview();toast(`${frame.name} 프레임을 선택했어요!`);
+  }));
+}
+$('#clearAdminFrameBtn').addEventListener('click',()=>{state.customFrame=null;renderAdminFrameOptions();renderPreview()});
+
 
 function getGeometry(){
   const layout=getLayouts().find(x=>x[0]===state.layout)||getLayouts()[0];
@@ -252,7 +296,46 @@ function makeFramePattern(ctx,g,ink){
 function fitText(ctx,text,maxWidth,size,minSize=15){
   let x=size;while(ctx.measureText(text).width>maxWidth&&x>minSize){x-=2;ctx.font=ctx.font.replace(/\d+(?=px)/,String(x))}return x;
 }
+
+async function renderAdminCustomFrame(req){
+  const frame=state.customFrame;
+  if(!frame)return;
+  const imgs=await Promise.all(state.photos.slice(0,state.count).map(async src=>{
+    if(!src)return null;if(photoCache.has(src))return photoCache.get(src);
+    try{const im=await loadImage(src);photoCache.set(src,im);return im}catch{return null}
+  }));
+  let overlay=null,logo=null;
+  if(frame.imageKey){try{overlay=await loadImage(`/api/frame-image?id=${encodeURIComponent(frame.id)}&v=${encodeURIComponent(frame.updatedAt)}`)}catch{}}
+  if(state.logoUrl){try{logo=await loadImage(state.logoUrl)}catch{}}
+  if(req!==state.renderNonce)return;
+  const canvas=ui.canvas;canvas.width=frame.width;canvas.height=frame.height;
+  const ctx=canvas.getContext('2d');ctx.fillStyle=frame.color;ctx.fillRect(0,0,frame.width,frame.height);
+  const filter=FILTERS.find(x=>x[0]===state.filter)?.[2]||'none';
+  frame.slots.forEach((slot,i)=>{
+    const x=slot.x*frame.width,y=slot.y*frame.height,w=slot.w*frame.width,h=slot.h*frame.height;
+    ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+    if(imgs[i]){ctx.filter=filter;drawCover(ctx,imgs[i],x,y,w,h);ctx.filter='none'}
+    else{ctx.fillStyle='#f0ddeb';ctx.fillRect(x,y,w,h);ctx.fillStyle='#9b82a2';ctx.textAlign='center';ctx.font=`bold ${Math.max(13,Math.min(w*.09,46))}px Arial`;ctx.fillText(`PHOTO ${i+1}`,x+w/2,y+h/2)}
+    ctx.restore();
+  });
+  if(overlay)ctx.drawImage(overlay,0,0,frame.width,frame.height);
+  ctx.fillStyle=frame.textColor;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font=`bold ${frame.titleSize}px ${state.font==='serif'?'Georgia,serif':state.font==='hand'?'cursive':'Arial,sans-serif'}`;
+  fitText(ctx,state.title.trim(),frame.width*.9,frame.titleSize,14);
+  if(state.title.trim())ctx.fillText(state.title.trim(),frame.width/2,frame.height*frame.titleY);
+  ctx.font=`${Math.max(13,Math.round(frame.titleSize*.53))}px Arial,sans-serif`;
+  fitText(ctx,state.subtitle.trim(),frame.width*.9,Math.max(13,Math.round(frame.titleSize*.53)),12);
+  if(state.subtitle.trim())ctx.fillText(state.subtitle.trim(),frame.width/2,frame.height*frame.subtitleY);
+  if(state.showDate){const d=state.date;ctx.font=`${Math.max(12,Math.round(frame.width*.019))}px Arial,sans-serif`;ctx.fillText(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`,frame.width/2,frame.height*.978)}
+  if(state.showLogo){ctx.save();ctx.textAlign='right';ctx.font=`bold ${Math.max(13,Math.round(frame.width*.023))}px Arial`;ctx.fillText('momentcut.',frame.width*.965,frame.height*.025);ctx.restore()}
+  if(logo){const scale=Math.min(frame.width*.15/logo.width,frame.height*.08/logo.height);ctx.drawImage(logo,frame.width*.82,frame.height*.9,logo.width*scale,logo.height*scale)}
+  for(const sticker of state.stickers){const x=sticker.x*frame.width,y=sticker.y*frame.height,size=Math.round(frame.width*.065);
+    ctx.save();ctx.font=`${size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(sticker.emoji,x,y);ctx.restore();
+    if(sticker.id===state.selectedSticker&&state.page==='edit'){ctx.save();ctx.setLineDash([9,7]);ctx.strokeStyle='#9c60d8';ctx.lineWidth=3;ctx.strokeRect(x-size*.6,y-size*.6,size*1.2,size*1.2);ctx.restore()}
+  }
+}
 async function renderPreview(){
+  if(state.customFrame){const req=++state.renderNonce;return renderAdminCustomFrame(req)}
   const req=++state.renderNonce;
   const g=getGeometry(),canvas=ui.canvas;
   const imgSources=state.photos.slice(0,state.count);
@@ -387,6 +470,6 @@ function createDemoPhotos(n){
   }return arr;
 }
 
-renderAllOptions();updateCaptureUI();
+renderAllOptions();updateCaptureUI();updateSetupSummary();
 const incoming=location.hash.slice(1);
-if(['capture','edit','result'].includes(incoming))go(incoming);
+if(['setup','capture','edit','result'].includes(incoming))go(incoming);

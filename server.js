@@ -95,6 +95,17 @@ async function handle(req,res){
   try{url=new URL(req.url,base)}catch{return send(res,400,'Bad request')}
   const pathname=url.pathname;
   if(pathname==='/health')return json(res,200,{ok:true,service:'momentcut'});
+  if(['/api/admin','/api/frames','/api/frame-image'].includes(pathname)){
+    const {admin,frames,frameImage}=await import('./admin-api.mjs');
+    const urlString=`http://${req.headers.host||'localhost'}${req.url}`;
+    const params={method:req.method,headers:req.headers};
+    if(req.method!=='GET'&&req.method!=='HEAD'){params.body=Readable.toWeb(req);params.duplex='half'}
+    const request=new Request(urlString,params);
+    const response=pathname==='/api/admin'?await admin(request):pathname==='/api/frames'?await frames(request):await frameImage(request);
+    res.writeHead(response.status,Object.fromEntries(response.headers.entries()));
+    if(req.method==='HEAD'||!response.body){res.end();return}
+    Readable.fromWeb(response.body).pipe(res);return;
+  }
   if(req.method==='POST'&&pathname==='/api/share'){
     if(!req.headers['content-type']?.startsWith('application/json'))return json(res,415,{error:'JSON 형식이 필요합니다.'});
     try{
@@ -139,7 +150,7 @@ async function handle(req,res){
     }
     const data=await fs.readFile(file.file);return send(res,200,req.method==='HEAD'?'':data,'image/png',{'Cache-Control':'private, max-age=3600','X-Robots-Tag':'noindex'});
   }
-  const allowed=new Set(['/','/index.html','/app.js','/style.css','/favicon.svg']);
+  const allowed=new Set(['/','/index.html','/app.js','/style.css','/favicon.svg','/admin.html','/admin.js','/admin.css']);
   if(!allowed.has(pathname))return send(res,404,'Not found');
   const name=pathname==='/'?'index.html':pathname.slice(1);
   try{const data=await fs.readFile(path.join(PUBLIC,name));

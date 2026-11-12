@@ -1,75 +1,78 @@
-# 📸 모먼트컷 — GitHub + Vercel 배포용
+# 📸 모먼트컷 v2 — 관리자 프레임 스튜디오
 
-인생네컷 스타일 사진 촬영 웹사이트. 카메라 촬영(수동·3초·5초), 4컷·6컷, 재촬영, 프레임/필터/스티커/문구/로고 편집, PNG 다운로드, 사진 공유 링크와 QR코드를 지원합니다.
+4·6컷 포토부스, 촬영 전 설정, 3·5초 자동/수동 촬영, 개별 재촬영, 전체 초기화, PNG 다운로드, 사진 공유 QR, 관리자 프레임 업로드/레이아웃/문구 관리.
 
-## 바로 배포하기
+## 접속 주소
 
-**[GITHUB-VERCEL-배포가이드.md](./GITHUB-VERCEL-배포가이드.md)**를 열어 차례대로 진행하세요.
+- `/` — 일반 사용자의 포토부스
+- `/admin.html` — **관리자 전용 프레임 스튜디오** (비밀번호 필요)
+- `/api/health` — 서버 상태 (`/health`는 로컬 서버용)
 
-핵심 설정:
+## 이번 버전 변경 사항
+
+1. `홈 → 촬영 설정 → 사진 촬영 → 꾸미기 → 완성` 순서. 컷 수(4/6)와 촬영 방식(3초·5초·수동)을 촬영 전에 선택합니다.
+2. 사진 하나만 **재촬영**할 수 있고, 별도로 **처음부터 초기화** 버튼을 두어 사진·필터·스티커·문구·로고·카운트를 모두 리셋합니다. 전체 초기화는 브라우저 확인창을 표시합니다.
+3. 관리자는 `/admin.html`에서 로그인한 후 프레임을 추가·수정·삭제할 수 있습니다. 출력 가로/세로 크기, 4·6컷, 세로/그리드 배치, **사진 영역 드래그·크기 조절**, 프레임 배경색, 이미지 오버레이 업로드, 문구·문구 위치·글씨 크기·색상 변경 등을 지원합니다.
+4. 관리자가 저장한 프레임은 일반 사이트의 **꾸미기 → 프레임 → 관리자 특별 프레임**에 나타납니다. 관리자의 문구를 기본값으로 불러오며 사용자는 개인 사진에 맞게 바꿀 수 있습니다.
+
+## GitHub + Vercel 배포
+
+**[GITHUB-VERCEL-배포가이드.md](./GITHUB-VERCEL-배포가이드.md)**에 초보자를 위한 단계별 설명이 있습니다.
+
+GitHub 저장소 최상위에 `vercel.json`, `package.json`, `public/`, `api/`, `frame-store.mjs`, `admin-api.mjs`, `vercel-api.mjs` 등이 있어야 합니다. ZIP 자체를 업로드하지 말고 압축 해제한 **내부 파일**을 올리세요. 중첩된 `momentcut/momentcut/` 폴더를 만들지 마세요. `render.yaml`은 필요하지 않습니다.
+
+Vercel:
 
 | 항목 | 값 |
-|---|---|
-| GitHub 저장소 최상위 | `package.json`, `vercel.json`, `public/`, `api/` |
-| Vercel Framework Preset | **Other** |
-| Root Directory | **`./` (기본값)** |
-| Build Command | **비움** (별도의 프런트엔드 빌드 불필요) |
-| Output Directory | **`public`** (`vercel.json`에 지정됨) |
-| Install Command | **기본값** (`npm install`) |
+| --- | --- |
+| Framework Preset | `Other` |
+| Root Directory | `./` |
+| Build Command | 비워두기 |
+| Output Directory | `public` (vercel.json에 명시) |
+| Install Command | 기본값 |
 
-사이트 배포 자체에는 Blob 스토리지가 필요하지 않습니다. 다만 **QR 공유 링크 생성**까지 사용하려면 Vercel 프로젝트에 **Private Vercel Blob** 스토리지를 연결해야 합니다. 연결하면 `BLOB_READ_WRITE_TOKEN`이 프로젝트에 설정됩니다. 연결 후 재배포하세요.
+### 관리자용 필수 환경 변수
 
-확인 주소:
+Vercel 프로젝트의 **Settings → Environment Variables**에 아래 둘을 추가하세요. 반드시 비밀 값으로 설정하며 GitHub 파일 안에 적지 마세요.
 
-- `/` — 홈페이지
-- `/api/health` — `{"ok":true,"service":"momentcut","mode":"vercel"}`
-- `/api/qr?text=hello` — QR SVG 이미지
+- `ADMIN_PASSWORD` — 관리자가 입력할 **길고 추측하기 어려운 비밀번호**. 고정 기본 비밀번호는 제공하지 않습니다.
+- `ADMIN_SESSION_SECRET` — 로그인 쿠키 서명용 임의의 비밀 문자열(권장 32바이트 이상의 난수). 예: 로컬 터미널에서 `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` 실행하여 출력값 사용.
 
-## 배포 시 수정한 점
+필수 값이 없다면 관리자 API는 503으로 거부합니다. 로그인 후 8시간 동안 `HttpOnly; SameSite=Strict` 쿠키로 인증합니다. 관리자 변경 API는 비밀번호 인증 없이 사용할 수 없습니다. 운영 시 강력한 비밀번호를 사용하고 서비스에 맞는 추가 로그인 보호(요청 제한 등)를 적용하세요.
 
-- 정적 웹 페이지를 `public/`에 모으고 `vercel.json`에서 배포 출력 위치를 명시했습니다.
-- 복잡한 `rewrites` 대신 `/api/*.mjs` Vercel Functions를 직접 사용합니다.
-- 사진 공유 주소를 `/api/view?id=...`와 `/api/image?id=...`로 통일했습니다.
-- Vercel Functions는 최신 **Web `Request`/`Response` 방식**으로 구현했습니다.
-- Private Vercel Blob API를 사용하기 위해 `@vercel/blob` 버전을 `^2.3.0` 이상으로 지정했습니다.
-- Blob 저장소가 없어도 **사진 촬영/꾸미기/PNG 저장**이 동작하며, 링크 공유 시 연결 안내를 표시합니다.
-- Vercel Functions 본문 크기 제한을 고려해 **3MB 이하 PNG만 링크로 공유**합니다. PNG 파일 다운로드는 이 제한과 무관합니다.
+### 관리자 프레임 영구 저장 · QR 공유
 
-## 로컬 테스트
+**Vercel Storage → Blob → Private store**를 프로젝트에 연결하고, 자동 등록되는 `BLOB_READ_WRITE_TOKEN`이 있는지 확인하세요. **새 배포**를 트리거하세요. 프레임 정보와 업로드한 오버레이 이미지는 **Private Blob**에 저장됩니다. 일반 방문자는 이미지 조회용 API를 통해 공개된 프레임만 불러옵니다. 업로드한 오버레이는 WEBP로 최적화되어 최대 1.5MB입니다. 이미지 변경 직후 Blob 캐싱에 따라 반영에 최대 약 1분이 걸릴 수 있습니다.
 
-Node.js 20 이상 필요:
+일반 촬영/PNG 다운로드는 Blob 연결 없이 동작하지만, **관리자 프레임 저장 및 QR 사진 공유**는 Blob 연결이 필수입니다. Blob 한도/사용량에 따라 비용이 발생할 수 있습니다.
+
+## 로컬 개발
+
+Node.js **20 이상** 권장:
 
 ```bash
 npm install
+# 아래 값은 예시이므로 실제 서비스에 사용하지 마세요.
+export ADMIN_PASSWORD='local-only-password-change-me'
+export ADMIN_SESSION_SECRET='long-random-session-secret-for-local-dev-only'
 npm run check
 npm start
 ```
 
-브라우저에서 `http://localhost:3000`에 접속하세요. 로컬에서는 링크 공유 사진이 `shared/` 폴더에 저장됩니다. 이 폴더와 `.env` 파일은 `.gitignore`에 의해 GitHub 업로드에서 제외됩니다.
+Windows PowerShell에서는 `export` 대신 `$env:ADMIN_PASSWORD = "..."` 형식으로 설정합니다. `http://localhost:3000` 및 `http://localhost:3000/admin.html`로 테스트하세요. 로컬에서는 프레임 저장이 `data/admin-frames/`, 공유 사진 저장이 `shared/`를 이용하며 두 폴더는 Git에서 제외됩니다.
 
-## 개인정보 및 보관 정책 안내
+## 프레임 이미지 만드는 팁
 
-- 일반 촬영·꾸미기·PNG 저장은 사용자의 브라우저에서 처리됩니다.
-- **공유 링크 생성**을 누르면 사진이 Vercel Blob 저장소에 업로드됩니다. 링크가 알려지면 누구나 해당 사진을 열 수 있습니다.
-- **공유 링크는 7일 후 만료**됩니다. 만료 후 누군가 열어보면 관련 Blob을 삭제하도록 설계되어 있습니다. **아무도 만료된 링크에 접속하지 않는다면 Blob 파일이 자동으로 물리 삭제되지는 않습니다.** 운영자는 Vercel Storage에서 오래된 Blob을 별도로 정리해야 합니다.
-- Vercel Blob은 사용량에 따른 한도 및 비용이 발생할 수 있습니다. 공개 서비스 운영 시 요금과 사용량을 주기적으로 확인하세요.
-- 카메라는 **HTTPS** 또는 **localhost**에서만 접근할 수 있으며, 사용자에게 권한 허용을 받아야 합니다.
+- 투명 배경의 PNG를 만들어 업로드하는 것을 추천해요(브라우저에서 WEBP로 압축하여 저장).
+- 사진이 들어갈 영역은 **투명하게 비워 두고**, 꽃·문구·테두리 등의 장식은 사진 위에 덮이도록 그립니다.
+- 포토스트립과 같은 **가로세로 비율**의 이미지를 업로드해야 왜곡이 적습니다.
+- 포토부스에 사용되는 개별 사진은 브라우저에서만 렌더링합니다. **사용자가 공유 링크를 직접 생성한 경우에만** 완성 사진이 Blob으로 업로드됩니다.
 
-## 포함 파일
+## 유지보수·보안 메모
 
-```text
-public/
-  index.html       정적 홈페이지·4개 화면
-  style.css        디자인
-  app.js           카메라 촬영·편집·다운로드·공유 UI
-api/
-  health.mjs       상태 확인
-  qr.mjs           QR 코드 생성
-  share.mjs        사진 업로드
-  view.mjs         공유 페이지
-  image.mjs        공유 이미지
-vercel-api.mjs      Vercel 서버리스 구현
-server.js           로컬 Node 서버
-vercel.json         Vercel 배포 설정
-package.json        런타임·의존성
-```
+- 관리자 주소를 안다고 관리자 권한을 얻을 수 있는 구조가 아닙니다. 변경 API는 서버 측에서 검증합니다.
+- 비밀번호 및 세션 비밀 문자열은 **서버 환경 변수**에만 보관합니다. 브라우저 번들, GitHub, README에 실제 값을 넣지 마세요.
+- 프레임 이미지와 문구는 일반 사용자에게 공개되는 콘텐츠입니다. 개인 정보가 들어간 이미지는 업로드하지 마세요.
+- 프레임 저장은 Vercel Blob Private 저장소에서 유지되므로 재배포해도 지워지지 않습니다. (프로젝트에서 해당 Blob 저장소를 해제하거나 삭제하면 접근할 수 없습니다.)
+- 공유 사진 링크는 7일 후 접근할 수 없으며, 실제 파일 삭제는 만료 후 링크 조회 또는 별도 운영 정리에 의존합니다.
+- 테스트: `npm run check`. 테스트는 서버 API·관리자 권한·저장/편집/삭제를 검증하며, 실제 Vercel 배포/카메라 권한은 배포 후 확인해야 합니다.
