@@ -95,6 +95,7 @@
           </div>
           <div class="cam-buttons">
             <button class="btn btn-outline" id="openCameraBtn">◎ 카메라 켜기</button>
+            <button class="btn btn-soft" id="switchCameraBtn" type="button" aria-label="전면과 후면 카메라 전환">↺ 후면 카메라</button>
             <button class="btn btn-dark cam-shutter" id="shutterBtn" disabled>◉ <span id="shutterLabel">촬영 시작</span></button>
             <label class="btn btn-soft upload-label">＋ 사진 업로드<input id="photoUpload" type="file" accept="image/*" multiple hidden></label>
           </div>
@@ -155,6 +156,8 @@
         <div class="result-showcase"><div class="result-sparkle star-one">✦</div><div class="result-sparkle star-two">✳</div><img id="finalImage" alt="완성한 포토스트립" src=""><div class="result-stage-note">made with ♡ at momentcut.</div></div>
         <aside class="result-actions panel"><div class="result-congrats">🎉 <span>PHOTO COMPLETE!</span></div><h3>우리의 오늘,<br>오래오래 간직해요.</h3><p>저장도 공유도 한 번에! 완성된 사진은 고화질 PNG로 저장할 수 있어요.</p>
           <button class="btn btn-dark btn-full btn-large" id="downloadBtn">↓ PNG 사진 저장하기</button>
+          <p id="kakaoDownloadNote" class="download-note hidden">카카오톡 브라우저에서는 저장 방식이 제한될 수 있어요. 저장이 안 되면 공유 메뉴 또는 아래 이미지 보기 기능을 사용해 주세요.</p>
+          <button class="btn btn-soft btn-full hidden" id="openSaveGuideBtn" type="button">▣ 저장이 안 될 때 사진 크게 보기</button>
           <button class="btn btn-outline btn-full" id="shareFileBtn">↗ 휴대폰으로 공유하기</button>
           <div class="separator"><span>또는 링크로 공유하기</span></div>
           <button class="btn btn-soft btn-full" id="createShareBtn">▦ 공유 링크 · QR 만들기</button>
@@ -167,6 +170,12 @@
   </main>
   <footer class="footer"><a href="#home" data-go="home" class="footer-brand">momentcut<span>.</span></a><span>찰칵, 지금을 남기는 작은 포토부스</span><span>© 2026 MOMENTCUT · MADE WITH ♡</span></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="saveImageDialog" class="save-image-dialog" aria-labelledby="saveImageDialogTitle">
+    <div class="save-image-header"><h3 id="saveImageDialogTitle">완성한 사진 저장하기</h3><button type="button" id="closeSaveImageDialog" aria-label="창 닫기">✕</button></div>
+    <p>사진을 길게 눌러 이미지 저장을 선택해 보세요. 카카오톡에서 지원하지 않는다면 공유하기 기능을 사용하거나 기본 브라우저에서 다시 촬영해 주세요.</p>
+    <img id="manualSaveImage" alt="길게 눌러 저장할 완성 사진">
+    <button type="button" class="btn btn-dark btn-full" id="closeSaveImageDialogBottom">닫기</button>
+  </dialog>
   <script src="/app.js" defer></script>
 </body>
 </html>

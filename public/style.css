@@ -107,3 +107,37 @@
   .shot-grid.shots-landscape{grid-template-columns:repeat(2,minmax(0,1fr))}
   .shot-grid.shots-portrait{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* v6: front/rear camera and an always-visible, responsive edit preview. */
+.camera-stage.rear-camera video{transform:none}
+#switchCameraBtn{white-space:nowrap}
+.download-note{background:#f9f1ff;border-radius:10px;padding:12px;color:#7a609a;font-size:12px;line-height:1.7;margin:0 0 12px}
+#openSaveGuideBtn{margin-bottom:12px}
+.save-image-dialog{border:0;border-radius:19px;padding:20px;width:min(92vw,570px);max-height:92dvh;overflow:auto;box-shadow:0 18px 65px #28203066;color:#3c3342}
+.save-image-dialog::backdrop{background:rgba(35,26,40,.72)}
+.save-image-dialog .save-image-header{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.save-image-dialog .save-image-header h3{margin:0;font-size:18px}
+.save-image-dialog .save-image-header button{border:0;background:#f2eaf6;padding:8px 13px;border-radius:8px;font-weight:800}
+.save-image-dialog p{font-size:12px;line-height:1.7;color:#6d6071}
+.save-image-dialog img{display:block;width:auto;height:auto;max-width:100%;max-height:53dvh;object-fit:contain;margin:12px auto 18px;-webkit-touch-callout:default;user-select:auto}
+@media(min-width:761px){
+  #edit .preview-panel{position:sticky;top:95px;align-self:start;z-index:8}
+  #edit .print-stage{min-height:260px;height:min(62dvh,660px);max-height:none;overflow:hidden;align-items:center;padding:15px}
+  #edit .print-stage canvas{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+}
+@media(max-width:760px){
+  /* Keep the preview under the sticky site header while the frame options scroll behind it. */
+  #edit .edit-grid{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+  #edit .preview-panel{position:sticky;top:66px;align-self:start;z-index:12;padding:8px 10px 7px;border:1px solid #e6d9ee;box-shadow:0 8px 26px rgba(54,42,55,.18);background:#fff}
+  #edit .preview-header{margin-bottom:6px}
+  #edit .preview-footer{margin-top:5px;font-size:10px}
+  #edit .print-stage{min-height:0;height:clamp(160px,28dvh,260px);max-height:none;overflow:hidden;padding:7px;align-items:center;justify-content:center}
+  #edit .print-stage canvas{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 3px 12px #38263830}
+  #edit .customize-panel{position:relative;z-index:1;min-height:0}
+  #edit .preview-footer span{max-width:65%;line-height:1.4}
+  #switchCameraBtn{flex:1 0 auto}
+}
+@media(max-width:380px){
+  #edit .print-stage{height:clamp(145px,25dvh,205px)}
+  #edit .preview-header .text-button{font-size:10px}
+}

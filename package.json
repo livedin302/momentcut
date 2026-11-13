@@ -1,8 +1,8 @@
 {
   "name": "momentcut-photo-booth",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "private": true,
-  "description": "MomentCut v5 - matching capture thumbnails and borderless output photos",
+  "description": "MomentCut v6 - camera switching, sticky live edit preview, Kakao save fallback",
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js && node --check vercel-api.mjs && node --check admin-api.mjs && node --check frame-store.mjs && node --check public/app.js && node --check public/admin.js && node --test test/*.mjs",

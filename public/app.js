@@ -77,6 +77,7 @@ const DEFAULTS = {layoutPreset:'basic4-double', frameStyle:'feelm-classic', time
 
 const state = {
   layoutPreset:DEFAULTS.layoutPreset, count:4, timer:DEFAULTS.timer, photos:[null,null,null,null], stream:null, busy:false, retakeIndex:null,
+  facingMode:'user', cameraConnecting:false, cameraRequestId:0, finalBlob:null,
   frameStyle:DEFAULTS.frameStyle, color:'#1e1b21', theme:'clean', filter:'none', stickers:[], selectedSticker:null,
   title:DEFAULTS.title, subtitle:DEFAULTS.subtitle, font:'sans', showDate:true, showLogo:true,
   logoUrl:null, date:new Date(), shareUrl:null, page:'home', renderNonce:0, setupDone:false, customFrame:null, availableFrames:[], openFrameCategory:null
@@ -104,6 +105,14 @@ function blendTextColor(hex){
   return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722<.29?'#fffafa':'#2c2630';
 }
 function styleInk(){return getCurrentFrameStyle().textColor||blendTextColor(state.color)}
+function isKakaoBrowser(){return /KAKAOTALK/i.test(navigator.userAgent||'')}
+function isIOSDevice(){return /iPhone|iPad|iPod/i.test(navigator.userAgent||'') || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1)}
+function updateCameraFacingUI(){
+  ui.stage.classList.toggle('rear-camera',state.facingMode==='environment');
+  const btn=$('#switchCameraBtn');
+  btn.textContent=state.facingMode==='user'?'↺ 후면 카메라':'↺ 전면 카메라';
+  btn.disabled=state.busy||state.cameraConnecting;
+}
 function updateCameraStageMode(){
   const preset=getCurrentPreset();
   const ratio=currentPhotoRatio();
@@ -136,31 +145,65 @@ $('#demoBtn').addEventListener('click',()=>{
 
 async function startCamera(){
   updateCameraStageMode();
-  if(state.stream||state.busy)return;
+  if(state.stream||state.busy||state.cameraConnecting)return !!state.stream;
   if(!navigator.mediaDevices?.getUserMedia){
     $('#cameraHelp').textContent='이 브라우저에서는 카메라를 사용할 수 없어요. HTTPS 또는 localhost에서 열거나 사진을 업로드해 주세요.';
-    return;
+    return false;
   }
-  $('#openCameraBtn').disabled=true;$('#cameraStatus').textContent='카메라 연결 중…';
+  state.cameraConnecting=true;
+  const requestId=++state.cameraRequestId;
+  const facing=state.facingMode;
+  $('#openCameraBtn').disabled=true;updateCameraFacingUI();$('#cameraStatus').textContent='카메라 연결 중…';
+  let result=false;
   try{
-    state.stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:'user',width:{ideal:1280},height:{ideal:960}}});
-    ui.video.srcObject=state.stream;await ui.video.play();
-    ui.stage.classList.add('ready');$('#cameraStatus').textContent='촬영 준비 완료 ✦';
-    $('#cameraHelp').textContent='레이아웃에 맞춰 미리보기가 바뀌어요. 촬영된 사진은 기본적으로 브라우저에서만 처리돼요.';
+    // On mobile, ask for the selected camera. Rear mode uses exact so a single-front-camera
+    // device cannot silently pretend it switched. A failed switch restores the previous camera.
+    const facingConstraint=facing==='environment'?{exact:'environment'}:{ideal:'user'};
+    const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:facingConstraint,width:{ideal:1280},height:{ideal:960}}});
+    if(requestId!==state.cameraRequestId || state.page!=='capture'){
+      stream.getTracks().forEach(t=>t.stop());return false;
+    }
+    state.stream=stream;
+    ui.video.srcObject=stream;
+    await ui.video.play();
+    if(requestId!==state.cameraRequestId || state.page!=='capture'){
+      stream.getTracks().forEach(t=>t.stop());state.stream=null;ui.video.srcObject=null;return false;
+    }
+    ui.stage.classList.add('ready');$('#cameraStatus').textContent=(facing==='environment'?'후면':'전면')+' 카메라 준비 완료 ✦';
+    $('#cameraHelp').textContent='전·후면 카메라를 바꿔도 이미 촬영한 사진은 그대로 유지돼요.';
     $('#openCameraBtn').textContent='✓ 카메라 연결됨';
+    result=true;
   }catch(err){
-    const rejected=['NotAllowedError','PermissionDeniedError'].includes(err.name);
+    if(requestId!==state.cameraRequestId)return false;
+    if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null;ui.video.srcObject=null}
+    const rejected=['NotAllowedError','PermissionDeniedError'].includes(err?.name);
     $('#cameraStatus').textContent='카메라 연결 안 됨';
-    $('#cameraHelp').textContent=rejected?'카메라 권한이 거부됐어요. 브라우저 설정에서 허용하거나 사진을 업로드해 주세요.':'카메라를 찾을 수 없어요. 사진 업로드로도 이용할 수 있어요.';
-    toast(rejected?'카메라 사용 권한을 확인해 주세요.':'카메라 연결에 실패했어요.');
-  }finally{$('#openCameraBtn').disabled=false;updateCaptureUI()}
+    $('#cameraHelp').textContent=rejected?'카메라 권한이 거부됐어요. 브라우저 설정에서 허용하거나 사진을 업로드해 주세요.':facing==='environment'?'후면 카메라를 사용할 수 없어요. 전면 카메라로 다시 시도해 주세요.':'카메라를 찾을 수 없어요. 사진 업로드로도 이용할 수 있어요.';
+    if(rejected)toast('카메라 사용 권한을 확인해 주세요.');
+  }finally{
+    if(requestId===state.cameraRequestId){state.cameraConnecting=false;$('#openCameraBtn').disabled=false;updateCameraFacingUI();updateCaptureUI()}
+  }
+  return result;
 }
 function stopCamera(){
+  ++state.cameraRequestId;
+  state.cameraConnecting=false;
   if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null}
   ui.video.srcObject=null;ui.stage.classList.remove('ready');$('#openCameraBtn').textContent='◎ 카메라 켜기';
-  $('#cameraStatus').textContent='카메라 대기 중';updateCaptureUI();
+  $('#cameraStatus').textContent='카메라 대기 중';$('#openCameraBtn').disabled=false;updateCameraFacingUI();updateCaptureUI();
 }
 $('#openCameraBtn').addEventListener('click',()=>state.stream?stopCamera():startCamera());
+$('#switchCameraBtn').addEventListener('click',async()=>{
+  if(state.busy||state.cameraConnecting)return;
+  const previousMode=state.facingMode,hadStream=!!state.stream;
+  stopCamera();state.facingMode=previousMode==='user'?'environment':'user';updateCameraFacingUI();
+  const connected=await startCamera();
+  if(!connected && state.page==='capture'){
+    state.facingMode=previousMode;updateCameraFacingUI();
+    toast('선택한 카메라를 사용할 수 없어 이전 카메라로 돌아갈게요.');
+    if(hadStream)await startCamera();
+  }
+});
 
 function setLayoutPreset(id,{preservePhotos=true}={}){
   const preset=LAYOUT_PRESETS.find(x=>x.id===id);if(!preset)return;
@@ -197,7 +240,7 @@ function fullReset(){
   if(state.busy){toast('촬영이 끝난 후 초기화할 수 있어요.');return}
   if(!window.confirm('촬영한 모든 사진과 꾸미기 설정을 지우고 처음부터 다시 시작할까요?'))return;
   stopCamera();photoCache.clear();state.renderNonce++;
-  Object.assign(state,{openFrameCategory:null,timer:DEFAULTS.timer,photos:[null,null,null,null],retakeIndex:null,setupDone:false,shareUrl:null,date:new Date(),customFrame:null,stickers:[],selectedSticker:null,logoUrl:null,showDate:true,showLogo:true,filter:'none',font:'sans'});
+  Object.assign(state,{openFrameCategory:null,facingMode:'user',finalBlob:null,timer:DEFAULTS.timer,photos:[null,null,null,null],retakeIndex:null,setupDone:false,shareUrl:null,date:new Date(),customFrame:null,stickers:[],selectedSticker:null,logoUrl:null,showDate:true,showLogo:true,filter:'none',font:'sans'});
   setLayoutPreset(DEFAULTS.layoutPreset,{preservePhotos:false});
   const old=$('#finalImage').dataset.objectUrl;if(old)URL.revokeObjectURL(old);
   $('#finalImage').removeAttribute('src');delete $('#finalImage').dataset.objectUrl;
@@ -219,7 +262,8 @@ function updateCaptureUI(){
   ui.shotGrid.innerHTML=state.photos.map((photo,i)=>`<button type="button" class="shot-cell ${photo?'filled':''}" data-retake="${i}" aria-label="${i+1}번 컷 ${photo?'다시 찍기':'비어 있음'}">${photo?`<img src="${photo}" alt="${i+1}번 사진">`:'+'}<span class="shot-index">${String(i+1).padStart(2,'0')}</span></button>`).join('');
   $$('[data-retake]',ui.shotGrid).forEach(b=>b.addEventListener('click',()=>{if(!state.busy&&state.photos[Number(b.dataset.retake)]){state.retakeIndex=Number(b.dataset.retake);toast(`${state.retakeIndex+1}번 컷을 다시 찍을게요.`);if(!state.stream)startCamera();updateCaptureUI()}}));
   $('#toEditorBtn').disabled=filled!==state.count||state.busy;
-  $('#shutterBtn').disabled=!state.stream||state.busy;
+  $('#shutterBtn').disabled=!state.stream||state.busy||state.cameraConnecting;
+  updateCameraFacingUI();
   const label=state.retakeIndex!==null?`${state.retakeIndex+1}번 컷 다시 찍기`:filled===state.count?'새로 촬영하기':(state.timer===0?'한 컷 촬영':'촬영 시작');
   $('#shutterLabel').textContent=label;
 }
@@ -236,7 +280,8 @@ function takeSnapshot(){
   const sourceRatio=vw/vh,targetRatio=dims.ratio;
   let sw=vw,sh=vh,sx=0,sy=0;
   if(sourceRatio>targetRatio){sw=vh*targetRatio;sx=(vw-sw)/2}else{sh=vw/targetRatio;sy=(vh-sh)/2}
-  ctx.translate(cvs.width,0);ctx.scale(-1,1);ctx.drawImage(ui.video,sx,sy,sw,sh,0,0,cvs.width,cvs.height);
+  if(state.facingMode==='user'){ctx.translate(cvs.width,0);ctx.scale(-1,1)}
+  ctx.drawImage(ui.video,sx,sy,sw,sh,0,0,cvs.width,cvs.height);
   return cvs.toDataURL('image/jpeg',.91);
 }
 function flash(){const f=$('#flash');f.classList.remove('fire');void f.offsetWidth;f.classList.add('fire')}
@@ -509,13 +554,60 @@ $('#finishBtn').addEventListener('click',()=>go('result'));
 async function createFinalBlob(){const oldSelection=state.selectedSticker;state.selectedSticker=null;await renderPreview();const blob=await new Promise(resolve=>ui.canvas.toBlob(resolve,'image/png'));state.selectedSticker=oldSelection;if(state.page==='edit')renderPreview();if(!blob)throw new Error('이미지를 만들 수 없어요.');return blob}
 async function showResult(){
   $('#shareBox').classList.add('hidden');$('#shareStatus').textContent='';
-  try{const blob=await createFinalBlob();const old=$('#finalImage').dataset.objectUrl;if(old)URL.revokeObjectURL(old);const url=URL.createObjectURL(blob);$('#finalImage').src=url;$('#finalImage').dataset.objectUrl=url;}
-  catch{toast('사진 렌더링에 문제가 생겼어요.')}
+  const kakao=isKakaoBrowser();
+  $('#kakaoDownloadNote').classList.toggle('hidden',!kakao);
+  $('#openSaveGuideBtn').classList.toggle('hidden',!kakao);
+  try{
+    const blob=await createFinalBlob();state.finalBlob=blob;
+    const old=$('#finalImage').dataset.objectUrl;if(old)URL.revokeObjectURL(old);
+    const url=URL.createObjectURL(blob);$('#finalImage').src=url;$('#finalImage').dataset.objectUrl=url;
+  }catch{toast('사진 렌더링에 문제가 생겼어요.')}
   state.shareUrl=null;
 }
+function openSaveImageDialog(){
+  const dialog=$('#saveImageDialog');
+  const image=$('#finalImage');
+  if(!image.src){toast('먼저 완성 사진을 만들어 주세요.');return}
+  $('#manualSaveImage').src=image.src;
+  if(!dialog.open)dialog.showModal();
+}
+$('#closeSaveImageDialog').addEventListener('click',()=>$('#saveImageDialog').close());
+$('#closeSaveImageDialogBottom').addEventListener('click',()=>$('#saveImageDialog').close());
+$('#openSaveGuideBtn').addEventListener('click',openSaveImageDialog);
+function triggerDownload(url,fileName){
+  const a=document.createElement('a');a.href=url;a.download=fileName;document.body.append(a);a.click();a.remove();
+}
 async function downloadPhoto(){
-  try{const blob=await createFinalBlob();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`momentcut_${new Date().toISOString().slice(0,10)}.png`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);toast('고화질 PNG 저장을 시작했어요!')}
-  catch{toast('저장에 실패했어요. 다시 시도해 주세요.')}
+  try{
+    const blob=state.finalBlob||await createFinalBlob();
+    const fileName=`momentcut_${new Date().toISOString().slice(0,10)}.png`;
+    if(isKakaoBrowser()){
+      // Kakao's Android WebView doesn't support blob:/data: downloads; use native file share
+      // when available. On iOS, Kakao documents data URLs as a possible download route.
+      if(navigator.share && navigator.canShare){
+        const file=new File([blob],fileName,{type:'image/png'});
+        if(navigator.canShare({files:[file]})){
+          try{await navigator.share({files:[file],title:'모먼트컷 사진'});return}
+          catch(err){if(err?.name==='AbortError')return}
+        }
+      }
+      if(isIOSDevice()){
+        try{
+          const dataUrl=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(blob)});
+          triggerDownload(dataUrl,fileName);
+          toast('저장창이 뜨지 않으면 사진 크게 보기에서 길게 눌러 저장해 주세요.');
+        }catch{toast('카카오톡 브라우저에서 저장할 수 없어요. 사진 크게 보기를 이용해 주세요.')}
+      }else{
+        toast('카카오톡은 직접 다운로드를 제한할 수 있어요. 사진 크게 보기 또는 공유하기를 이용해 주세요.');
+      }
+      openSaveImageDialog();
+      return;
+    }
+    const url=URL.createObjectURL(blob);
+    triggerDownload(url,fileName);
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    toast('PNG 다운로드를 요청했어요!');
+  }catch{toast('저장에 실패했어요. 다시 시도해 주세요.')}
 }
 $('#downloadBtn').addEventListener('click',downloadPhoto);
 $('#shareFileBtn').addEventListener('click',async()=>{try{const blob=await createFinalBlob(),file=new File([blob],'momentcut.png',{type:'image/png'});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:'모먼트컷 사진 ♡',text:'우리의 오늘을 공유해요!',files:[file]})}else{toast('사진 파일 공유를 지원하지 않는 환경이에요. PNG로 저장해 주세요.')}}catch(err){if(err.name!=='AbortError')toast('공유하지 못했어요. PNG로 저장해 주세요.')}});
